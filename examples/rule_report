@@ -1,0 +1,255 @@
+> show access- control-config 
+
+=========[ Some_Cloud-Policy_1 ]==========
+Description               :  
+Default Action            : Block
+Logging Configuration
+    DC                    : Disabled
+    Beginning             : Disabled
+    End                   : Disabled
+Rule Hits                 : 0
+
+===[ Security Intelligence - Network Whitelist ]====
+    Name                  : Global-Do-Not-Block-List_13 (List)
+    IP Count              : 0
+    Zone                  : any
+
+===[ Security Intelligence - Network Blacklist ]====
+Logging Configuration     : Enabled
+    DC                    : Enabled
+
+--------------------[ Monitor ]---------------------
+    Name                  : TID IPv4 Monitor (Feed)
+    Zone                  : any
+
+[K
+Unable to flush stdout: Success> 
+> show access-control-config
+
+=========[ Some_Cloud-Policy_1 ]==========
+Description               :  
+Default Action            : Block
+Logging Configuration
+    DC                    : Disabled
+    Beginning             : Disabled
+    End                   : Disabled
+Rule Hits                 : 0
+
+===[ Security Intelligence - Network Whitelist ]====
+    Name                  : Global-Do-Not-Block-List_13 (List)
+    IP Count              : 0
+    Zone                  : any
+
+===[ Security Intelligence - Network Blacklist ]====
+Logging Configuration     : Enabled
+    DC                    : Enabled
+
+--------------------[ Monitor ]---------------------
+    Name                  : TID IPv4 Monitor (Feed)
+    Zone                  : any
+
+    Name                  : TID IPv6 Monitor (Feed)
+    Zone                  : any
+
+
+---------------------[ Block ]----------------------
+    Name                  : Global-Block-List_13 (List)
+    IP Count              : 0
+    Zone                  : any
+
+    Name                  : TID IPv4 Block (Feed)
+    Zone                  : any
+
+    Name                  : TID IPv6 Block (Feed)
+    Zone                  : any
+
+=====[ Security Intelligence - URL Whitelist ]======
+    Name                  : Global-Do-Not-Block-List-for-URL_13 (List)
+    URL Count             : 0
+    Zone                  : any
+
+=====[ Security Intelligence - URL Blacklist ]======
+Logging Configuration     : Enabled
+    DC                   : Enabled
+
+[K
+--------------------[ Monitor ]---------------------
+    Name                  : TID URL Monitor (Feed)
+    Zone                  : any
+
+
+---------------------[ Block ]----------------------
+    Name                  : URL Malware (Feed)
+    Zone                  : any
+
+    Name                  : Global-Block-List-for-URL_13 (List)
+    URL Count             : 0
+    Zone                  : any
+
+    Name                  : TID URL Block (Feed)
+    Zone                  : any
+
+=======[ Security Intelligence - DNS Policy ]=======
+    Name                  : Default DNS Policy_10
+    Logging Configuration : Enabled
+        DC                : Enabled
+
+
+===============[ Rule Set:  (User) ]================
+
+----------[ Rule: Custom_rule1 | FM-15045 ]-----------
+    Action                : Fast-path
+       Source ISE Metadata    : 
+
+      Dest ISE Metadata     : 
+
+    Source Zones          : inside
+    Destination Zones     : outside
+    Source Networks       : Internal (group)
+                              OBJ-10.178.0.0 (10.178.0.0/16)
+                              OBJ-10.203.0.0 (10.203.0.0/16)
+                              OBJ-10.69.0.0 (10.69.0.0/16)
+                              OBJ-10.177.64.0_18 (10.177.64.0/18)
+                              10.0.0.0/8
+                              172.19.0.0/16
+                              172.16.0.0/12
+                            OBJ-192.168.243.0_24 (192.168.243.0/24)
+                            OBJ-10.18.46.62-69 (10.18.46.62-10.18.46.69)
+    Destination Networks  : OBJ-10.138.0.0_16 (10.138.0.0/16)
+ Cloud_Subnet (group)
+                              OBJ-10.85.0.0_16 (10.85.0.0/16)
+                              OBJ-192.141.8.0_24 (192.141.8.0/24)
+                              OBJ-192.141.0.0_17 (192.141.0.0/17)
+                              OBJ-10.98.128.0_17 (10.98.128.0/17)
+                              OBJ-10.229.0.0_16 (10.229.0.0/16)
+                              OBJ-10.83.0.0_16 (10.83.0.0/16)
+                              OBJ-10.114.0.0_16 (10.114.0.0/16)
+                              OBJ-10.73.60.0_23 (10.73.60.0/23)
+                              OBJ-10.68.0.0_16 (10.68.0.0/16)
+                              OBJ-10.207.0.0_16 (10.207.0.0/16)
+                              OBJ-10.152.0.0_16 (10.152.0.0/16)
+                              OBJ-10.117.0.0_16 (10.117.0.0/16)
+                              OBJ-10.73.64.0_23 (10.73.64.0/23)
+                              OBJ-10.174.0.0_16 (10.174.0.0/16)
+                              OBJ-10.223.0.0_16 (10.223.0.0/16)
+                              OBJ-10.242.0.0_16 (10.242.0.0/16)
+                              OBJ-10.175.0.0_16 (10.175.0.0/16)
+                              OBJ-10.82.0.0_16 (10.82.0.0/16)
+                              OBJ-10.158.0.0_16 (10.158.0.0/16)
+                              OBJ-10.236.0.0_16 (10.236.0.0/16)
+                              OBJ-10.74.0.0-16 (10.74.0.0/16)
+                              OBJ-10.173.0.0 (10.173.0.0/16)
+                              OBJ-10.68.101.16_28 (10.68.101.16/28)
+                              OBJ-10.143.0.0_16 (10.143.0.0/16)
+                              OBJ-192.141.9.0_24 (192.141.9.0/24)
+                              OBJ-10.243.0.0_16 (10.243.0.0/16)
+                              OBJ-10.68.101.32_28 (10.68.101.32/28)
+                              OBJ-10.155.0.0_16 (10.155.0.0/16)
+                              OBJ-10.98.0.0_17 (10.98.0.0/17)
+                              OBJ-10.149.0.0_16 (10.149.0.0/16)
+    Logging Configuration    
+    DC                    : Enabled
+      Beginning           : Enabled
+      End                 : Enabled
+      Files               : Disabled
+    Safe Search           : No
+    Rule Hits             : 0
+    Variable Set          : Default-Set_17
+
+----------[ Rule: Custom_rule2 | FM-15046 ]-----------
+    Source Networks       : Cloud-Internet_GROUP (group)
+                              192.168.100.100/32
+                              OBJ-10.242.120.141 (10.242.120.141)
+                              OBJ-10.83.185.128_27 (10.83.185.128/27)
+                              OBJ-10.223.90.0_28 (10.223.90.0/28)
+                              OBJ-10.175.141.128_25 (10.175.141.128/25)
+                              OBJ-10.155.121.0_24 (10.155.121.0/24)
+                              OBJ-10.242.112.135 (10.242.112.135)
+                              hostname10v (10.223.33.80)
+                              OBJ-10.175.252.144_28 (10.175.252.144/28)
+Tabulary_Extract (group)
+                              OBJ-10.223.35.160_28 (10.223.35.160/28)
+                              OBJ-10.223.35.176_28 (10.223.35.176/28)
+                              OBJ-10.223.35.192_28 (10.223.35.192/28)
+                              OBJ-10.175.252.192_26 (10.175.252.192/26)
+                              OBJ-10.175.180.181 (10.175.180.181)
+                              OBJ-10.223.45.128_27 (10.223.45.128/27)
+                              OBJ-10.18.119.181 (10.18.119.181)
+                              OBJ-10.10.109.114 (10.10.109.114)
+                              Server_Group (10.18.112.219, 10.18.112.220, 10.18.112.221, 10.18.112.222, 10.18.112.61, 10.18.47.5, 10.18.47.4, 10.18.47.9, 10.18.47.6, 10.18.47.8, 10.18.47.15, 10.18.47.3, 10.18.47.11, 10.18.47.7)
+                              OBJ-10.93.75.239 (10.93.75.239)
+                              OBJ-10.10.109.108 (10.10.109.108)
+                              hostname1w (10.223.148.98)
+                              OBJ-10.223.33.208_28 (10.223.33.208/28)
+                              OBJ-10.175.180.0_22 (10.175.180.0/22)
+                              hostname23e (10.175.180.213)
+                            OBJ-10.18.46.62-69 (10.18.46.62-10.18.46.69)
+Snow_License_Manager_Server_1 (group)
+                              OBJ-10.223.243.6-9 (10.223.243.6-10.223.243.9)
+                              OBJ-10.223.219.5-12 (10.223.219.5-10.223.219.12)
+Cloud-Internet_GROUP_split_7 (group)
+                              OBJ-10.82.116.192_28 (10.82.116.192/28)
+                              OBJ-10.68.137.128_26 (10.68.137.128/26)
+                              hostname8d (10.175.175.230)
+                              OBJ-10.83.186.128_25 (10.83.186.128/25)
+                              OBJ-10.83.119.0_24 (10.83.119.0/24)
+                              OBJ-10.83.248.0_24 (10.83.248.0/24)
+                              OBJ-10.83.203.0_26 (10.83.203.0/26)
+[K
+                              OBJ-10.155.72.0_24 (10.155.72.0/24)
+                              OBj-10.68.2.216_29 (10.68.2.216/29)
+                              OBJ-10.223.65.0_27 (10.223.65.0/27)
+Object missing: 00000000-0000-0ed3-0000-008589979471
+                              hostname4p (10.242.0.68)
+                              OBJ-10.83.112.0_24 (10.83.112.0/24)
+                              OBJ-10.223.150.0_24 (10.223.150.0/24)
+                              OBJ-10.175.252.160_27 (10.175.252.160/27)
+ZScaler_Connectors_2 (group)
+AWS_Zscaler_Connectors (group)
+Object missing: 00000000-0000-0ed3-0000-042950266954
+Object missing: 00000000-0000-0ed3-0000-042950266963
+Object missing: 00000000-0000-0ed3-0000-042950266964
+Object missing: 00000000-0000-0ed3-0000-042950266962
+Object missing: 00000000-0000-0ed3-0000-042950266961
+Object missing: 00000000-0000-0ed3-0000-042950266960
+GCP_Zscaler_APP_Connectors (group)
+Object missing: 00000000-0000-0ed3-0000-021474902976
+Object missing: 00000000-0000-0ed3-0000-021474902972
+Object missing: 00000000-0000-0ed3-0000-021474902984
+Object missing: 00000000-0000-0ed3-0000-021474902998
+Object missing: 00000000-0000-0ed3-0000-021474902991
+Object missing: 00000000-0000-0ed3-0000-021474903009
+Object missing: 00000000-0000-0ed3-0000-021474903012
+Object missing: 00000000-0000-0ed3-0000-021474903002
+Object missing: 00000000-0000-0ed3-0000-060131374259
+Azure_Zscaler_APP_Connectors (group)
+Object missing: 00000000-0000-0ed3-0000-042950266956
+Object missing: 00000000-0000-0ed3-0000-042950266955
+Object missing: 00000000-0000-0ed3-0000-042950266959
+Object missing: 00000000-0000-0ed3-0000-042950266957
+Object missing: 00000000-0000-0ed3-0000-042950266958
+Object missing: 00000000-0000-0ed3-0000-042950266972
+Object missing: 00000000-0000-0ed3-0000-042950273172
+GCP_Zscaler_APP_Connectors (group)
+Object missing: 00000000-0000-0ed3-0000-042950258305
+Object missing: 00000000-0000-0ed3-0000-042950258304
+Object missing: 00000000-0000-0ed3-0000-042950273146
+Object missing: 00000000-0000-0ed3-0000-042950273145
+                              OBJ-10.219.0.0_16 (10.219.0.0/16)
+                              OBJ-10.139.0.0_16 (10.139.0.0/16)
+                              OBJ-10.138.0.0_16 (10.138.0.0/16)
+                              OBJ-10.148.0.0_16 (10.148.0.0/16)
+                              OBJ-10.168.0.0_16 (10.168.0.0/16)
+                              OBJ-10.180.0.0_16 (10.180.0.0/16)
+    Destination Networks  : IPv4-RFC1918 (10.0.0.0/8, 172.16.0.0/12,
+ 192.168.0.0/16)
+    Destination Ports     : HTTPS (protocol 6, port 443)
+    Logging Configuration    
+    DC                    : Enabled
+      Beginning           : Enabled
+      End                 : Enabled
+      Files               : Disabled
+    Safe Search           : No
+    Rule Hits             : 0
+    Variable Set          : Default-Set_17
+

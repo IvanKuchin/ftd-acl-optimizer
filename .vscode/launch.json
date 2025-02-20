@@ -1,0 +1,45 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug executable 'opt'",
+            "cargo": {
+                "args": [
+                    "build",
+                    "--bin=opt",
+                    "--package=opt"
+                ],
+                "filter": {
+                    "name": "opt",
+                    "kind": "bin"
+                }
+            },
+            "args": ["analyze", "-f", "examples/rule_report", "-r", "Custom_rule1"],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug unit tests in executable 'opt'",
+            "cargo": {
+                "args": [
+                    "test",
+                    "--no-run",
+                    "--bin=opt",
+                    "--package=opt"
+                ],
+                "filter": {
+                    "name": "opt",
+                    "kind": "bin"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        }
+    ]
+}
