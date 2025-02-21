@@ -10,13 +10,14 @@ jobs:
     permissions:
       # write permission is required to create a github release
       contents: write
+      
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
 
-    - name: Set up Rust
-      uses: actions-rs/toolchain@v1
-      with:
-        toolchain: stable
+    # - name: Set up Rust
+    #   uses: actions-rs/toolchain@v1
+    #   with:
+    #     toolchain: stable
 
     - name: Run tests
       run: cargo test
@@ -50,7 +51,7 @@ jobs:
 
     - name: Create release
       id: create_release
-      uses: softprops/action-gh-release@v1
+      uses: softprops/action-gh-release@v2
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
@@ -63,19 +64,19 @@ jobs:
       run: echo "The release is at ${{ steps.create_release.outputs.upload_url }}"
 
     - name: Upload linux artifact
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: linux-artifact
         path: target/x86_64-unknown-linux-gnu/release/linux-${{ github.event.release.tag_name }}.tar.gz
 
     - name: Upload windows artifact
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: windows-artifact
         path: target/x86_64-pc-windows-msvc/release/windows-${{ github.event.release.tag_name }}.tar.gz
 
     - name: Upload macOS artifact
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: macos-artifact
         path: target/x86_64-apple-darwin/release/macos-${{ github.event.release.tag_name }}.tar.gz
