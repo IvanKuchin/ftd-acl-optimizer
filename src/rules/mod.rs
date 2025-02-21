@@ -10,10 +10,11 @@ use rule::Rule;
 pub enum RulesError {
     #[error("Fail to parse rules: {0}")]
     General(String),
+    #[error("Failed to parse rule: {0}")]
+    ParseRule(#[from] rule::RuleError),
 }
 
-
-pub struct Rules (Vec<Rule>);
+pub struct Rules(Vec<Rule>);
 
 impl Deref for Rules {
     type Target = Vec<Rule>;
@@ -33,11 +34,10 @@ impl TryFrom<Vec<String>> for Rules {
 
         while let Some(rule_lines) = reader.next_rule() {
             dbg!(&rule_lines);
-            let rule = Rule::default();
+            let rule = Rule::try_from(rule_lines)?;
             rules.push(rule);
         }
 
         Ok(Self(rules))
     }
 }
-

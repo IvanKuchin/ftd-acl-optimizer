@@ -8,6 +8,8 @@ pub struct Rule {
 pub enum RuleError {
     #[error("Fail to parse rule: {0}")]
     General(String),
+    #[error("Fail to parse rule {0}: {1}")]
+    General2(String, String),
 }
 
 impl Default for Rule {
@@ -72,11 +74,17 @@ fn get_name(lines: &[String]) -> Result<String, RuleError> {
     let line = lines
         .iter()
         .find(|line| line.contains("Rule: "))
-        .ok_or(RuleError::General("Rule name not found".to_string()))?;
+        .ok_or(RuleError::General(format!(
+            "Line with rule name not found ({:?})",
+            lines
+        )))?;
     let name = line
         .split_whitespace()
         .nth(2)
-        .ok_or(RuleError::General("Rule name not found".to_string()))?;
+        .ok_or(RuleError::General(format!(
+            "Rule name not found in line: {:?}",
+            line
+        )))?;
     Ok(name.to_string())
 }
 
