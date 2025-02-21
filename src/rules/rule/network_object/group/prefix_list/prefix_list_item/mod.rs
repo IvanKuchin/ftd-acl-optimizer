@@ -16,9 +16,8 @@ pub enum PrefixListItem {
 
 #[derive(thiserror::Error, Debug)]
 pub enum PrefixListItemError {
-    #[error("Failed to parse prefix list item: {0}")]
-    General(String),
-    
+    // #[error("Failed to parse prefix list item: {0}")]
+    // General(String),
     #[error("Failed to parse prefix list item: {0}")]
     IPRangeError(#[from] ip_range::IPRangeError),
 
@@ -43,4 +42,3 @@ impl FromStr for PrefixListItem {
         }
     }
 }
-

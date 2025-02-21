@@ -19,7 +19,7 @@ impl FromStr for PrefixList {
     type Err = PrefixListError;
 
     // Example line1:
-    // RFC1918 (10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16, 10.11.12.13-10.11.12.18) 
+    // RFC1918 (10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16, 10.11.12.13-10.11.12.18)
     // Example line2:
     // 10.0.0.0/8
     fn from_str(line: &str) -> Result<Self, Self::Err> {
@@ -28,48 +28,43 @@ impl FromStr for PrefixList {
         }
 
         if line.contains("(") && line.contains(")") {
-            let name = line
-                .split("(")
-                .collect::<Vec<&str>>()[0]
-                .trim()
-                .to_string();
-    
-            let prefix_str = line
-                .split("(")
-                .collect::<Vec<&str>>()[1]
+            let name = line.split("(").collect::<Vec<&str>>()[0].trim().to_string();
+
+            let prefix_str = line.split("(").collect::<Vec<&str>>()[1]
                 .split(")")
                 .collect::<Vec<&str>>()[0]
                 .trim()
                 .to_string();
-    
+
             let items: Vec<_> = prefix_str
                 .split(",")
-                .map(|s| s.trim().parse::<PrefixListItem>().map_err(|e| PrefixListError::General(e.to_string())))
+                .map(|s| {
+                    s.trim()
+                        .parse::<PrefixListItem>()
+                        .map_err(|e| PrefixListError::General(e.to_string()))
+                })
                 .collect::<Result<_, PrefixListError>>()?;
-    
-            Ok(Self {
-                name,
-                items,
-            })
+
+            Ok(Self { name, items })
         } else if !line.contains("(") && !line.contains(")") {
             let name = line.to_string();
-            let items = vec![line.trim().parse::<PrefixListItem>().map_err(|e| PrefixListError::General(e.to_string()))?];
+            let items = vec![line
+                .trim()
+                .parse::<PrefixListItem>()
+                .map_err(|e| PrefixListError::General(e.to_string()))?];
 
             if items.is_empty() {
                 return Err(PrefixListError::General("Empty prefix list.".to_string()));
             }
 
-            Ok(Self {
-                name,
-                items,
-            })
+            Ok(Self { name, items })
         } else {
-            return Err(PrefixListError::General(format!("Invalid prefix list format {}", line)));
+            return Err(PrefixListError::General(format!(
+                "Invalid prefix list format {}",
+                line
+            )));
         }
-
-
     }
-    
 }
 
 #[cfg(test)]
@@ -78,7 +73,8 @@ mod tests {
 
     #[test]
     fn test_valid_prefix_list1() {
-        let line = "RFC1918 (10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16, 192.168.168.168-192.168.168.169)";
+        let line =
+            "RFC1918 (10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16, 192.168.168.168-192.168.168.169)";
         let prefix_list = PrefixList::from_str(line);
         assert!(prefix_list.is_ok());
         let prefix_list = prefix_list.unwrap();
@@ -134,7 +130,7 @@ mod tests {
         assert!(result.is_err());
         let prefix_list = result.unwrap_err();
         assert_eq!(
-            format!("{}", prefix_list), 
+            format!("{}", prefix_list),
             "Fail to parse prefix list: Empty prefix list."
         );
     }

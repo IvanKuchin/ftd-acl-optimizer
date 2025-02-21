@@ -2,8 +2,8 @@ mod group;
 use std::str::FromStr;
 use std::vec;
 
-use group::Group;
 use group::prefix_list::PrefixList;
+use group::Group;
 
 pub struct NetworkObject {
     name: String,
@@ -29,7 +29,6 @@ pub enum NetworkObjectError {
     Panic(String),
 }
 
-
 impl TryFrom<&Vec<String>> for NetworkObject {
     type Error = NetworkObjectError;
 
@@ -44,7 +43,9 @@ impl TryFrom<&Vec<String>> for NetworkObject {
 
     fn try_from(lines: &Vec<String>) -> Result<Self, Self::Error> {
         if lines.is_empty() {
-            return Err(NetworkObjectError::General("Input lines are empty".to_string()));
+            return Err(NetworkObjectError::General(
+                "Input lines are empty".to_string(),
+            ));
         }
 
         let (name, merged_lines) = extract_name(lines)?;
@@ -57,16 +58,17 @@ impl TryFrom<&Vec<String>> for NetworkObject {
             idx += obj_lines_count;
         }
 
-        Ok(NetworkObject {
-            name,
-            items,
-        })
+        Ok(NetworkObject { name, items })
     }
 }
 
-fn get_object(lines: &[String]) -> Result<(NetworkObjectItem, usize), <NetworkObject as TryFrom<&Vec<String>>>::Error> {
+fn get_object(
+    lines: &[String],
+) -> Result<(NetworkObjectItem, usize), <NetworkObject as TryFrom<&Vec<String>>>::Error> {
     if lines.is_empty() {
-        return Err(NetworkObjectError::General("Input lines are empty".to_string()));
+        return Err(NetworkObjectError::General(
+            "Input lines are empty".to_string(),
+        ));
     }
 
     let first_line = lines[0].as_str();
@@ -98,9 +100,13 @@ fn get_object(lines: &[String]) -> Result<(NetworkObjectItem, usize), <NetworkOb
 // Another (group)
 // return 1
 
-fn get_lines_in_group(lines: &[String]) -> Result<usize, <NetworkObject as TryFrom<&Vec<String>>>::Error> {
+fn get_lines_in_group(
+    lines: &[String],
+) -> Result<usize, <NetworkObject as TryFrom<&Vec<String>>>::Error> {
     if lines.is_empty() {
-        return Err(NetworkObjectError::General("Input lines are empty".to_string()));
+        return Err(NetworkObjectError::General(
+            "Input lines are empty".to_string(),
+        ));
     }
     if lines.len() == 1 {
         return Ok(1);
@@ -125,28 +131,34 @@ fn get_lines_in_group(lines: &[String]) -> Result<usize, <NetworkObject as TryFr
     Ok(idx)
 }
 
-fn extract_name(lines: &[String]) -> Result<(String, Vec<String>), <NetworkObject as TryFrom<&Vec<String>>>::Error> {
+fn extract_name(lines: &[String]) -> Result<(String, Vec<String>), NetworkObjectError> {
     if lines.is_empty() {
-        return Err(NetworkObjectError::General("Input lines are empty".to_string()));
+        return Err(NetworkObjectError::General(
+            "Input lines are empty".to_string(),
+        ));
     }
 
     let first_line: Vec<_> = lines[0].split(": ").collect();
     if first_line.len() != 2 {
-        return Err(NetworkObjectError::General2(lines[0].to_string(), "Incorrect first line format, expected '____ _____ : group or prefix'".to_string()));
+        return Err(NetworkObjectError::General2(
+            lines[0].to_string(),
+            "Incorrect first line format, expected '____ _____ : group or prefix'".to_string(),
+        ));
     }
     let name = first_line
-        .get(0)
-        .ok_or_else(|| NetworkObjectError::General2(lines[0].to_string(), "Missing name in first line".to_string()))?
+        .first()
+        .ok_or_else(|| {
+            NetworkObjectError::General2(
+                lines[0].to_string(),
+                "Missing name in first line".to_string(),
+            )
+        })?
         .trim()
         .to_string();
     let merged_lines: Vec<_> = first_line[1..]
         .iter()
         .map(|x| x.to_string())
-        .chain(
-            lines[1..]
-            .iter()
-            .map(|x| x.to_string())
-        )
+        .chain(lines[1..].iter().map(|x| x.to_string()))
         .collect();
 
     Ok((name, merged_lines))
@@ -165,23 +177,27 @@ mod tests {
         ];
         let (name, merged_lines) = extract_name(&lines).unwrap();
         assert_eq!(name, "Source Networks");
-        assert_eq!(merged_lines, vec![
-            "Internal (group)".to_string(),
-            "OBJ-10.11.12.0_23 (10.11.12.0/23)".to_string(),
-            "10.0.0.0/8".to_string(),
-        ]);
+        assert_eq!(
+            merged_lines,
+            vec![
+                "Internal (group)".to_string(),
+                "OBJ-10.11.12.0_23 (10.11.12.0/23)".to_string(),
+                "10.0.0.0/8".to_string(),
+            ]
+        );
     }
 
     #[test]
     fn test_extract_name_invalid_format() {
-        let lines = vec![
-            "Source Networks Internal (group)".to_string(),
-        ];
+        let lines = vec!["Source Networks Internal (group)".to_string()];
         let result = extract_name(&lines);
         assert!(result.is_err());
         if let Err(NetworkObjectError::General2(line, msg)) = result {
             assert_eq!(line, "Source Networks Internal (group)");
-            assert_eq!(msg, "Incorrect first line format, expected '____ _____ : group or prefix'");
+            assert_eq!(
+                msg,
+                "Incorrect first line format, expected '____ _____ : group or prefix'"
+            );
         } else {
             panic!("Expected NetworkObjectError::General2");
         }
@@ -270,9 +286,7 @@ mod tests {
 
     #[test]
     fn test_get_object_prefix_list() {
-        let lines = vec![
-            "10.0.0.0/8".to_string(),
-        ];
+        let lines = vec!["10.0.0.0/8".to_string()];
         let (obj, count) = get_object(&lines).unwrap();
         match obj {
             NetworkObjectItem::PrefixList(_) => (),
@@ -385,5 +399,4 @@ mod tests {
         assert_eq!(result.name, "Source Networks");
         assert_eq!(result.items.len(), 7);
     }
-
 }
