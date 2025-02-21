@@ -24,10 +24,10 @@
         - name: checkout code
           uses: actions/checkout@v2
 
-        - name: Set up Rust
-          uses: rust-lang/rustup-init.js
-          with:
-            default-toolchain: stable
+        # - name: Set up Rust
+        #   uses: rust-lang/rustup-init.js
+        #   with:
+        #     default-toolchain: stable
 
         - name: Install dependencies
           run: cargo build --verbose

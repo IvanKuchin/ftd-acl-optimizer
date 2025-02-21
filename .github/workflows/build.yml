@@ -63,19 +63,19 @@ jobs:
       run: echo "The release is at ${{ steps.create_release.outputs.upload_url }}"
 
     - name: Upload linux artifact
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: linux-artifact
         path: target/x86_64-unknown-linux-gnu/release/linux-${{ github.event.release.tag_name }}.tar.gz
 
     - name: Upload windows artifact
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: windows-artifact
         path: target/x86_64-pc-windows-msvc/release/windows-${{ github.event.release.tag_name }}.tar.gz
 
     - name: Upload macOS artifact
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: macos-artifact
         path: target/x86_64-apple-darwin/release/macos-${{ github.event.release.tag_name }}.tar.gz
