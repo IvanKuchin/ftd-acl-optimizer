@@ -10,13 +10,14 @@ jobs:
     permissions:
       # write permission is required to create a github release
       contents: write
+      
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
 
-    - name: Set up Rust
-      uses: actions-rs/toolchain@v1
-      with:
-        toolchain: stable
+    # - name: Set up Rust
+    #   uses: actions-rs/toolchain@v1
+    #   with:
+    #     toolchain: stable
 
     - name: Run tests
       run: cargo test
@@ -50,7 +51,7 @@ jobs:
 
     - name: Create release
       id: create_release
-      uses: softprops/action-gh-release@v1
+      uses: softprops/action-gh-release@v2
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
