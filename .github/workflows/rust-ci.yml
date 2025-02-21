@@ -24,22 +24,17 @@
         - name: checkout code
           uses: actions/checkout@v4
 
-        # - name: Set up Rust
-        #   uses: rust-lang/rustup-init.js
-        #   with:
-        #     default-toolchain: stable
-
-        - name: Install dependencies
-          run: cargo build --verbose
+        - name: Run clippy
+          run: cargo clippy --verbose -- -D warnings
 
         - name: Run tests
           run: cargo test --verbose
 
-        - name: Run clippy
-          run: cargo clippy --verbose -- -D warnings
-
         - name: Run fmt
           run: cargo fmt -- --check
+
+        - name: Install dependencies
+          run: cargo build --verbose
 
         # - name: Run doc
         #   run: cargo doc --no-deps --document-private-items
