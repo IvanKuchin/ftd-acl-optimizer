@@ -108,6 +108,9 @@ Logging Configuration     : Enabled
     Source Networks       : Internal (group)
                               OBJ-10.178.0.0 (10.178.0.0/16)
                               OBJ-10.203.0.0 (10.203.0.0/16)
+Object missing: 00000000-0000-0ed3-0000-042950266954
+Object missing: 00000000-0000-0ed3-0000-042950266963
+Object missing: 00000000-0000-0ed3-0000-042950266964
                               OBJ-10.69.0.0 (10.69.0.0/16)
                               OBJ-10.177.64.0_18 (10.177.64.0/18)
                               10.0.0.0/8

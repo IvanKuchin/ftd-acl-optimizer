@@ -76,13 +76,7 @@ fn main() {
 }
 
 fn is_filtered(line: &str) -> bool {
-    line.contains("Object missing: ")
-        || line.contains("[K")
-        || line.contains("[7m")
-        || line.contains("[m")
-        || line.contains("[8m")
-        || line.contains("[1m")
-        || line.contains("[0m")
+    line.contains("Object missing: ") || line.contains("")
 }
 
 fn analyze_rule(fname: &PathBuf, rule: &String) -> Result<(), MyError> {
@@ -90,7 +84,7 @@ fn analyze_rule(fname: &PathBuf, rule: &String) -> Result<(), MyError> {
         .lines()
         .skip_while(|line| !line.contains(&format!("Rule: {}", rule)))
         .take_while(|line| !line.contains("Rule: ") || line.contains(&format!("Rule: {}", rule)))
-        .filter(|line| is_filtered(line))
+        .filter(|line| !is_filtered(line))
         .map(|s| s.to_string())
         .collect();
 
@@ -100,7 +94,8 @@ fn analyze_rule(fname: &PathBuf, rule: &String) -> Result<(), MyError> {
         return Err(MyError::RuleEmpty { name: rule.clone() });
     }
 
-    Err(MyError::Unknown("Not implemented".to_string()))
+    println!("# of rules found: {}", rules.len());
+    todo!("Implement rule analysis");
 }
 
 fn _analyze_rules(fname: &PathBuf) -> Result<(), MyError> {
@@ -117,5 +112,5 @@ fn _analyze_rules(fname: &PathBuf) -> Result<(), MyError> {
         return Err(MyError::RulesEmpty {});
     }
 
-    Err(MyError::Unknown("Not implemented".to_string()))
+    todo!("Implement rules analysis");
 }
