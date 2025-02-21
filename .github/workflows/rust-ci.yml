@@ -1,0 +1,57 @@
+---
+    name: Rust Continuous Integration
+    
+    #######################################
+    # Start the job on all push to master #
+    #######################################
+    on:
+      push:
+        branches:
+          - master
+      pull_request:
+        branches:
+          - master
+    
+    ###############
+    # Set the Job #
+    ###############
+    jobs:
+      build:
+        name:  job 1
+        runs-on: ubuntu-latest
+    
+        steps:
+        - name: checkout code
+          uses: actions/checkout@v2
+
+        - name: Set up Rust
+          uses: rust-lang/rustup-init.js
+          with:
+            default-toolchain: stable
+
+        - name: Install dependencies
+          run: cargo build --verbose
+
+        - name: Run tests
+          run: cargo test --verbose
+
+        - name: Run clippy
+          run: cargo clippy --verbose -- -D warnings
+
+        - name: Run fmt
+          run: cargo fmt -- --check
+
+        # - name: Run doc
+        #   run: cargo doc --no-deps --document-private-items
+          
+        # - name: Run benchmarks
+        #   run: cargo bench --verbose
+
+        # - name: Install cargo audit
+        #   run: cargo install cargo-audit
+        # - name: Run audit
+        #   run: cargo audit
+          
+        # - name: Run coverage
+        #   run: tarpaulin --out Xml --output-dir ./target/tarpaulin --verbose --all -- --exclude-files tests/* --exclude-files src/main.rs --exclude-files src/lib.rs --exclude-files src/bin/* --exclude-files src/structopt
+
