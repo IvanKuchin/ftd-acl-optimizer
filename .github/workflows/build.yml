@@ -1,0 +1,89 @@
+name: Publish release assets
+
+on:
+  release:
+    types: ['published']
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      # write permission is required to create a github release
+      contents: write
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Set up Rust
+      uses: actions-rs/toolchain@v1
+      with:
+        toolchain: stable
+
+    - name: Run tests
+      run: cargo test
+
+    - name: Run clippy
+      run: cargo clippy -- -D warnings
+
+    - name: Linux build
+      run: |
+        cargo build --release --target x86_64-unknown-linux-gnu
+        cd target/x86_64-unknown-linux-gnu/release/
+        tar -czf linux-${{ github.event.release.tag_name }}.tar.gz myapp
+      env:
+        CARGO_TERM_COLOR: always
+
+    - name: Windows build
+      run: |
+        cargo build --release --target x86_64-pc-windows-msvc
+        cd target/x86_64-pc-windows-msvc/release/
+        tar -czf windows-${{ github.event.release.tag_name }}.tar.gz myapp.exe
+      env:
+        CARGO_TERM_COLOR: always
+
+    - name: macOS build
+      run: |
+        cargo build --release --target x86_64-apple-darwin
+        cd target/x86_64-apple-darwin/release/
+        tar -czf macos-${{ github.event.release.tag_name }}.tar.gz myapp
+      env:
+        CARGO_TERM_COLOR: always
+
+    - name: Create release
+      id: create_release
+      uses: softprops/action-gh-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        files: |
+          target/x86_64-unknown-linux-gnu/release/linux-${{ github.event.release.tag_name }}.tar.gz
+          target/x86_64-pc-windows-msvc/release/windows-${{ github.event.release.tag_name }}.tar.gz
+          target/x86_64-apple-darwin/release/macos-${{ github.event.release.tag_name }}.tar.gz
+
+    - name: Get the URL of the created release
+      run: echo "The release is at ${{ steps.create_release.outputs.upload_url }}"
+
+    - name: Upload linux artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: linux-artifact
+        path: target/x86_64-unknown-linux-gnu/release/linux-${{ github.event.release.tag_name }}.tar.gz
+
+    - name: Upload windows artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: windows-artifact
+        path: target/x86_64-pc-windows-msvc/release/windows-${{ github.event.release.tag_name }}.tar.gz
+
+    - name: Upload macOS artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: macos-artifact
+        path: target/x86_64-apple-darwin/release/macos-${{ github.event.release.tag_name }}.tar.gz
+
+    - name: Cleanup
+      run: |
+        rm target/x86_64-unknown-linux-gnu/release/linux-${{ github.event.release.tag_name }}.tar.gz
+        rm target/x86_64-pc-windows-msvc/release/windows-${{ github.event.release.tag_name }}.tar.gz
+        rm target/x86_64-apple-darwin/release/macos-${{ github.event.release.tag_name }}.tar.gz
+        echo "Cleanup completed successfully."
+
