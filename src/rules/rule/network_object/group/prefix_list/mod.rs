@@ -13,6 +13,8 @@ pub struct PrefixList {
 pub enum PrefixListError {
     #[error("Fail to parse prefix list: {0}")]
     General(String),
+    #[error("Fail to parse prefix list: {0}")]
+    PrefixListItemError(#[from] prefix_list_item::PrefixListItemError),
 }
 
 impl FromStr for PrefixList {
@@ -38,12 +40,8 @@ impl FromStr for PrefixList {
 
             let items: Vec<_> = prefix_str
                 .split(",")
-                .map(|s| {
-                    s.trim()
-                        .parse::<PrefixListItem>()
-                        .map_err(|e| PrefixListError::General(e.to_string()))
-                })
-                .collect::<Result<_, PrefixListError>>()?;
+                .map(|s| s.trim().parse::<PrefixListItem>())
+                .collect::<Result<_, prefix_list_item::PrefixListItemError>>()?;
 
             Ok(Self { name, items })
         } else if !line.contains("(") && !line.contains(")") {

@@ -1,7 +1,16 @@
 mod network_object;
+use network_object::NetworkObject;
 
+mod port_object;
+use port_object::PortObject;
+
+#[derive(Debug)]
 pub struct Rule {
     name: String,
+    source_networks: NetworkObject,
+    destination_networks: NetworkObject,
+    source_ports: PortObject,
+    destination_ports: PortObject,
 }
 
 #[derive(thiserror::Error, Debug)]
@@ -10,14 +19,10 @@ pub enum RuleError {
     General(String),
     #[error("Fail to parse rule {0}: {1}")]
     General2(String, String),
-}
-
-impl Default for Rule {
-    fn default() -> Self {
-        Self {
-            name: "".to_string(),
-        }
-    }
+    #[error("Fail to parse rule: {0}")]
+    NetworkObjectError(#[from] network_object::NetworkObjectError),
+    #[error("Fail to parse rule: {0}")]
+    PortObjectError(#[from] port_object::PortObjectError),
 }
 
 impl TryFrom<Vec<String>> for Rule {
@@ -45,7 +50,7 @@ impl TryFrom<Vec<String>> for Rule {
 
         let name = get_name(&lines)?;
 
-        let _source_networks: Vec<_> = lines_from_till(
+        let source_networks: Vec<_> = lines_from_till(
             &lines,
             "Source Networks",
             &[
@@ -55,7 +60,7 @@ impl TryFrom<Vec<String>> for Rule {
                 "Logging",
             ],
         )?;
-        let _destination_networks: Vec<_> = lines_from_till(
+        let destination_networks: Vec<_> = lines_from_till(
             &lines,
             "Destination Networks",
             &[
@@ -66,7 +71,39 @@ impl TryFrom<Vec<String>> for Rule {
             ],
         )?;
 
-        Ok(Self { name })
+        let source_ports: Vec<_> = lines_from_till(
+            &lines,
+            "Source Ports",
+            &[
+                "Source Networks",
+                "Destination Networks",
+                "Destination Ports",
+                "Logging",
+            ],
+        )?;
+        let destination_ports: Vec<_> = lines_from_till(
+            &lines,
+            "Destination Ports",
+            &[
+                "Source Networks",
+                "Destination Networks",
+                "Source Ports",
+                "Logging",
+            ],
+        )?;
+
+        let source_networks = NetworkObject::try_from(&source_networks)?;
+        let destination_networks = NetworkObject::try_from(&destination_networks)?;
+        let source_ports = PortObject::try_from(&source_ports)?;
+        let destination_ports = PortObject::try_from(&destination_ports)?;
+
+        Ok(Self {
+            name,
+            source_networks,
+            destination_networks,
+            source_ports,
+            destination_ports,
+        })
     }
 }
 

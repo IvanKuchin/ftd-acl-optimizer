@@ -17,7 +17,6 @@ pub enum GroupError {
     General2(String, String),
 }
 
-
 impl TryFrom<&Vec<String>> for Group {
     type Error = GroupError;
 
@@ -34,24 +33,25 @@ impl TryFrom<&Vec<String>> for Group {
     fn try_from(lines: &Vec<String>) -> Result<Self, Self::Error> {
         if let [title, ..] = lines.as_slice() {
             if !title.contains(" (group)") {
-                return Err(GroupError::General(format!("Invalid group format {}", title)));
+                return Err(GroupError::General(format!(
+                    "Invalid group format {}",
+                    title
+                )));
             }
             let name = title.split('(').next().unwrap().trim().to_string();
             let mut prefix_lists = vec![];
-            
 
             for line in &lines[1..] {
-
                 let prefix = line.trim().to_string();
                 if !prefix.is_empty() {
-                    prefix_lists.push(PrefixList::from_str(&prefix).map_err(|e| GroupError::General2(name.clone(), e.to_string()))?);
+                    prefix_lists.push(
+                        PrefixList::from_str(&prefix)
+                            .map_err(|e| GroupError::General2(name.clone(), e.to_string()))?,
+                    );
                 }
             }
-            
-            Ok(Self {
-                name,
-                prefix_lists,
-            })
+
+            Ok(Self { name, prefix_lists })
         } else {
             Err(GroupError::General("Invalid group format.".to_string()))
         }
@@ -85,7 +85,10 @@ mod tests {
         let lines = vec!["__Invalid group format__".to_string()];
         let result = Group::try_from(&lines);
         assert!(result.is_err());
-        assert_eq!(result.unwrap_err().to_string(), "Fail to parse group: Invalid group format __Invalid group format__");
+        assert_eq!(
+            result.unwrap_err().to_string(),
+            "Fail to parse group: Invalid group format __Invalid group format__"
+        );
     }
 
     #[test]
@@ -93,7 +96,10 @@ mod tests {
         let lines: Vec<String> = vec![];
         let result = Group::try_from(&lines);
         assert!(result.is_err());
-        assert_eq!(result.unwrap_err().to_string(), "Fail to parse group: Invalid group format.");
+        assert_eq!(
+            result.unwrap_err().to_string(),
+            "Fail to parse group: Invalid group format."
+        );
     }
 
     #[test]
@@ -111,9 +117,7 @@ mod tests {
 
     #[test]
     fn test_group_with_empty_group() {
-        let lines = vec![
-            "Internal (group)".to_string(),
-        ];
+        let lines = vec!["Internal (group)".to_string()];
 
         let group = Group::try_from(&lines).unwrap();
         assert_eq!(group.name, "Internal");
@@ -122,11 +126,8 @@ mod tests {
 
     #[test]
     fn test_group_with_invalid_prefixes() {
-        let lines = vec![
-            "Internal (group)".to_string(),
-            "INVALID_PREFIX".to_string(),
-        ];
-        
+        let lines = vec!["Internal (group)".to_string(), "INVALID_PREFIX".to_string()];
+
         let result = Group::try_from(&lines);
         assert!(result.is_err());
         assert_eq!(result.unwrap_err().to_string(), "Fail to parse group Internal: Fail to parse prefix list: Failed to parse prefix list item: Failed to parse prefix: Failed to parse IPv4 address: invalid digit found in string");

@@ -1,15 +1,18 @@
-mod group;
 use std::str::FromStr;
+
+mod group;
 use std::vec;
 
 use group::prefix_list::PrefixList;
 use group::Group;
 
+#[derive(Debug)]
 pub struct NetworkObject {
     name: String,
     items: Vec<NetworkObjectItem>,
 }
 
+#[derive(Debug)]
 pub enum NetworkObjectItem {
     ObjectGroup(Group),
     PrefixList(PrefixList),
