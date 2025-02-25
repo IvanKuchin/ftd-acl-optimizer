@@ -11,9 +11,9 @@ pub struct Group {
 
 #[derive(thiserror::Error, Debug)]
 pub enum GroupError {
-    #[error("Fail to parse group: {0}")]
+    #[error("Fail to parse network group: {0}")]
     General(String),
-    #[error("Fail to parse group {0}: {1}")]
+    #[error("Fail to parse network group {0}: {1}")]
     General2(String, String),
 }
 
@@ -34,7 +34,7 @@ impl TryFrom<&Vec<String>> for Group {
         if let [title, ..] = lines.as_slice() {
             if !title.contains(" (group)") {
                 return Err(GroupError::General(format!(
-                    "Invalid group format {}",
+                    "Invalid network group format {}",
                     title
                 )));
             }
@@ -53,7 +53,9 @@ impl TryFrom<&Vec<String>> for Group {
 
             Ok(Self { name, prefix_lists })
         } else {
-            Err(GroupError::General("Invalid group format.".to_string()))
+            Err(GroupError::General(
+                "Invalid network group format.".to_string(),
+            ))
         }
     }
 }
@@ -87,7 +89,7 @@ mod tests {
         assert!(result.is_err());
         assert_eq!(
             result.unwrap_err().to_string(),
-            "Fail to parse group: Invalid group format __Invalid group format__"
+            "Fail to parse network group: Invalid network group format __Invalid group format__"
         );
     }
 
@@ -98,7 +100,7 @@ mod tests {
         assert!(result.is_err());
         assert_eq!(
             result.unwrap_err().to_string(),
-            "Fail to parse group: Invalid group format."
+            "Fail to parse network group: Invalid network group format."
         );
     }
 
@@ -130,6 +132,6 @@ mod tests {
 
         let result = Group::try_from(&lines);
         assert!(result.is_err());
-        assert_eq!(result.unwrap_err().to_string(), "Fail to parse group Internal: Fail to parse prefix list: Failed to parse prefix list item: Failed to parse prefix: Failed to parse IPv4 address: invalid digit found in string");
+        assert_eq!(result.unwrap_err().to_string(), "Fail to parse network group Internal: Fail to parse prefix list: Failed to parse prefix list item: Failed to parse prefix: Failed to parse IPv4 address: invalid digit found in string");
     }
 }
