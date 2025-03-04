@@ -15,6 +15,8 @@ pub enum GroupError {
     General(String),
     #[error("Fail to parse network group {0}: {1}")]
     General2(String, String),
+    #[error("Failed to parse network group: {0}")]
+    PrefixListError(#[from] prefix_list::PrefixListError),
 }
 
 impl TryFrom<&Vec<String>> for Group {
@@ -34,7 +36,7 @@ impl TryFrom<&Vec<String>> for Group {
         if let [title, ..] = lines.as_slice() {
             if !title.contains(" (group)") {
                 return Err(GroupError::General(format!(
-                    "Invalid network group format {}",
+                    "Invalid network group format, should contain (group) {}",
                     title
                 )));
             }
@@ -44,10 +46,7 @@ impl TryFrom<&Vec<String>> for Group {
             for line in &lines[1..] {
                 let prefix = line.trim().to_string();
                 if !prefix.is_empty() {
-                    prefix_lists.push(
-                        PrefixList::from_str(&prefix)
-                            .map_err(|e| GroupError::General2(name.clone(), e.to_string()))?,
-                    );
+                    prefix_lists.push(PrefixList::from_str(&prefix)?);
                 }
             }
 
