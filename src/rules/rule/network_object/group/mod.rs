@@ -44,9 +44,9 @@ impl TryFrom<&Vec<String>> for Group {
             let mut prefix_lists = vec![];
 
             for line in &lines[1..] {
-                let prefix = line.trim().to_string();
+                let prefix = line.trim();
                 if !prefix.is_empty() {
-                    prefix_lists.push(PrefixList::from_str(&prefix)?);
+                    prefix_lists.push(PrefixList::from_str(prefix)?);
                 }
             }
 
