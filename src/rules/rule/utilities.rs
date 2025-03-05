@@ -6,6 +6,13 @@ pub enum UtilitiesError {
     NameExtractionError2(String, String),
 }
 
+// Example
+// Input:
+// Source Networks       : Internal (group)
+// OBJ-10.11.12.0_23 (10.11.12.0/23)
+// 10.0.0.0/8
+// Output:
+// ("Source Networks", ["Internal (group)", "OBJ-10.11.12.0_23 (10.11.12.0/23)", "10.0.0.0/8"])
 pub fn extract_name(lines: &[String]) -> Result<(String, Vec<String>), UtilitiesError> {
     if lines.is_empty() {
         return Err(UtilitiesError::NameExtractionError(
