@@ -88,7 +88,7 @@ mod tests {
         assert!(result.is_err());
         assert_eq!(
             result.unwrap_err().to_string(),
-            "Fail to parse network group: Invalid network group format __Invalid group format__"
+            "Fail to parse network group: Invalid network group format, should contain (group) __Invalid group format__"
         );
     }
 
@@ -131,6 +131,6 @@ mod tests {
 
         let result = Group::try_from(&lines);
         assert!(result.is_err());
-        assert_eq!(result.unwrap_err().to_string(), "Fail to parse network group Internal: Fail to parse prefix list: Failed to parse prefix list item: Failed to parse prefix: Failed to parse IPv4 address: invalid digit found in string");
+        assert_eq!(result.unwrap_err().to_string(), "Failed to parse network group: Fail to parse prefix list: Failed to parse prefix list item: Failed to parse prefix: Failed to parse IPv4 address: invalid digit found in string");
     }
 }
