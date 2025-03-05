@@ -1,3 +1,4 @@
+use std::fmt::{self, Display, Formatter};
 use std::str::FromStr;
 
 #[derive(Debug)]
@@ -12,6 +13,24 @@ pub struct PortList {
 pub enum PortListError {
     #[error("Failed to parse port list: {0}")]
     General(String),
+}
+
+impl Display for PortList {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        if self.start == self.end {
+            write!(
+                f,
+                "{} (protocol {}, port {})",
+                self.name, self.protocol, self.start
+            )
+        } else {
+            write!(
+                f,
+                "{} (protocol {}, port {}-{})",
+                self.name, self.protocol, self.start, self.end
+            )
+        }
+    }
 }
 
 impl FromStr for PortList {
@@ -218,7 +237,6 @@ mod tests {
     fn test_get_name_and_ports_missing_closing_parenthesis() {
         let input = "HTTP (protocol 6, port 80-81";
         let result = get_name_and_ports(input);
-        print!("-----{:?}", result);
         assert!(result.is_err());
     }
 

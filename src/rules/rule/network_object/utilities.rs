@@ -4,6 +4,10 @@ pub enum UtilitiesError {
     NameExtractionError(String),
     #[error("Fail to extract name with details: {0}, {1}")]
     NameExtractionError2(String, String),
+    #[error("Fail to calculate lines in a group: {0}")]
+    GroupLineCalculationError(String),
+    #[error("Fail to calculate lines in a group with details: {0}, {1}")]
+    GroupLineCalculationError2(String, String),
 }
 
 // Example
@@ -45,6 +49,55 @@ pub fn extract_name(lines: &[String]) -> Result<(String, Vec<String>), Utilities
         .collect();
 
     Ok((name, merged_lines))
+}
+
+// Example1:
+// Internal (group)
+//   OBJ-157.121.0.0 (157.121.0.0/16)
+//   OBJ-206.213.0.0 (206.213.0.0/16)
+//   OBJ-167.69.0.0 (167.69.0.0/16)
+//   OBJ-198.187.64.0_18 (198.187.64.0/18)
+//   10.0.0.0/8
+//   204.99.0.0/16
+//   172.16.0.0/12
+// OBJ-192.168.243.0_24 (192.168.243.0/24)
+// OBJ-10.18.46.62-69 (10.18.46.62-10.18.46.69)
+// return 8
+
+// Example2:
+// Internal (group)
+// Another (group)
+// return 1
+pub fn calculate_lines_in_group(lines: &[String]) -> Result<usize, UtilitiesError> {
+    if lines.is_empty() {
+        return Err(UtilitiesError::GroupLineCalculationError(
+            "Input lines are empty".to_string(),
+        ));
+    }
+    if lines.len() == 1 {
+        return Ok(1);
+    }
+
+    let [_, first_line, ..] = lines else {
+        return Err(UtilitiesError::GroupLineCalculationError(format!(
+            "Panic {:?}",
+            lines
+        )));
+    };
+
+    let reference_padding = first_line.len() - first_line.trim_start().len();
+    let mut idx = 1;
+    while idx < lines.len() {
+        if lines[idx].contains("(group)") {
+            return Ok(idx);
+        }
+        let padding = lines[idx].len() - lines[idx].trim_start().len();
+        if padding != reference_padding {
+            return Ok(idx);
+        }
+        idx += 1;
+    }
+    Ok(idx)
 }
 
 #[cfg(test)]
@@ -95,6 +148,46 @@ mod tests {
             assert_eq!(msg, "Input lines are empty");
         } else {
             panic!("Expected UtilitiesError::NameExtractionError");
+        }
+    }
+
+    #[test]
+    fn test_calculate_lines_in_group_single_group() {
+        let lines = vec![
+            "Internal (group)".to_string(),
+            "  OBJ-157.121.0.0 (157.121.0.0/16)".to_string(),
+            "  OBJ-206.213.0.0 (206.213.0.0/16)".to_string(),
+            "  OBJ-167.69.0.0 (167.69.0.0/16)".to_string(),
+            "  OBJ-198.187.64.0_18 (198.187.64.0/18)".to_string(),
+            "  10.0.0.0/8".to_string(),
+            "  204.99.0.0/16".to_string(),
+            "  172.16.0.0/12".to_string(),
+            "OBJ-192.168.243.0_24 (192.168.243.0/24)".to_string(),
+            "OBJ-10.18.46.62-69 (10.18.46.62-10.18.46.69)".to_string(),
+        ];
+        let result = calculate_lines_in_group(&lines).unwrap();
+        assert_eq!(result, 8);
+    }
+
+    #[test]
+    fn test_calculate_lines_in_group_multiple_groups() {
+        let lines = vec![
+            "Internal (group)".to_string(),
+            "Another (group)".to_string(),
+        ];
+        let result = calculate_lines_in_group(&lines).unwrap();
+        assert_eq!(result, 1);
+    }
+
+    #[test]
+    fn test_calculate_lines_in_group_empty_lines() {
+        let lines: Vec<String> = vec![];
+        let result = calculate_lines_in_group(&lines);
+        assert!(result.is_err());
+        if let Err(UtilitiesError::GroupLineCalculationError(msg)) = result {
+            assert_eq!(msg, "Input lines are empty");
+        } else {
+            panic!("Expected UtilitiesError::GroupLineCalculationError");
         }
     }
 }

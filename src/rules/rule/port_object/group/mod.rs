@@ -5,8 +5,8 @@ use port_list::PortList;
 
 #[derive(Debug)]
 pub struct Group {
-    name: String,
-    port_lists: Vec<PortList>,
+    pub name: String,
+    pub port_lists: Vec<PortList>,
 }
 
 #[derive(thiserror::Error, Debug)]
