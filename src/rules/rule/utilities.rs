@@ -24,7 +24,8 @@ pub fn extract_name(lines: &[String]) -> Result<(String, Vec<String>), Utilities
     if first_line.len() != 2 {
         return Err(UtilitiesError::NameExtractionError2(
             lines[0].to_string(),
-            "Incorrect first line format, expected '____ _____ : group or prefix'".to_string(),
+            "Incorrect object first line format, expected '____ _____ : group or prefix'"
+                .to_string(),
         ));
     }
     let name = first_line
@@ -32,7 +33,7 @@ pub fn extract_name(lines: &[String]) -> Result<(String, Vec<String>), Utilities
         .ok_or_else(|| {
             UtilitiesError::NameExtractionError2(
                 lines[0].to_string(),
-                "Missing name in first line".to_string(),
+                "Missing object name in first line".to_string(),
             )
         })?
         .trim()
@@ -78,7 +79,7 @@ mod tests {
             assert_eq!(line, "Source Networks Internal (group)");
             assert_eq!(
                 msg,
-                "Incorrect first line format, expected '____ _____ : group or prefix'"
+                "Incorrect object first line format, expected '____ _____ : group or prefix'"
             );
         } else {
             panic!("Expected UtilitiesError::NameExtractionError2");
