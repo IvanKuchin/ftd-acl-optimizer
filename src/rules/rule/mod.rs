@@ -4,8 +4,6 @@ use network_object::NetworkObject;
 mod port_object;
 use port_object::PortObject;
 
-mod utilities;
-
 #[derive(Debug)]
 pub struct Rule {
     name: String,

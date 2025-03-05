@@ -6,7 +6,7 @@ use std::vec;
 use group::prefix_list::PrefixList;
 use group::Group;
 
-use super::utilities;
+mod utilities;
 
 #[derive(Debug)]
 pub struct NetworkObject {
@@ -69,9 +69,7 @@ impl TryFrom<&Vec<String>> for NetworkObject {
     }
 }
 
-fn get_object(
-    lines: &[String],
-) -> Result<(NetworkObjectItem, usize), <NetworkObject as TryFrom<&Vec<String>>>::Error> {
+fn get_object(lines: &[String]) -> Result<(NetworkObjectItem, usize), NetworkObjectError> {
     if lines.is_empty() {
         return Err(NetworkObjectError::General(
             "Input lines are empty".to_string(),
