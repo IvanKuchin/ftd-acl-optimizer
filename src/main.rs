@@ -94,6 +94,7 @@ fn analyze_rule(fname: &PathBuf, rule: &String) -> Result<(), MyError> {
         return Err(MyError::RuleEmpty { name: rule.clone() });
     }
 
+    // dbg!(&rules);
     println!("# of rules found: {}", rules.len());
     todo!("Implement rule analysis");
 }

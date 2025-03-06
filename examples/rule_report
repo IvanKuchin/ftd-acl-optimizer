@@ -150,6 +150,8 @@ Object missing: 00000000-0000-0ed3-0000-042950266964
                               OBJ-10.155.0.0_16 (10.155.0.0/16)
                               OBJ-10.98.0.0_17 (10.98.0.0/17)
                               OBJ-10.149.0.0_16 (10.149.0.0/16)
+    Source Ports     : Ephemeral (group)
+      HTTPS (protocol 6, port 443)
     Logging Configuration    
     DC                    : Enabled
       Beginning           : Enabled

@@ -9,8 +9,8 @@ pub struct Rule {
     name: String,
     source_networks: NetworkObject,
     destination_networks: NetworkObject,
-    source_ports: PortObject,
-    destination_ports: PortObject,
+    source_ports: Option<PortObject>,
+    destination_ports: Option<PortObject>,
 }
 
 #[derive(thiserror::Error, Debug)]
@@ -94,8 +94,14 @@ impl TryFrom<Vec<String>> for Rule {
 
         let source_networks = NetworkObject::try_from(&source_networks)?;
         let destination_networks = NetworkObject::try_from(&destination_networks)?;
-        let source_ports = PortObject::try_from(&source_ports)?;
-        let destination_ports = PortObject::try_from(&destination_ports)?;
+        let source_ports = match source_ports.is_empty() {
+            true => None,
+            false => Some(PortObject::try_from(&source_ports)?),
+        };
+        let destination_ports = match destination_ports.is_empty() {
+            true => None,
+            false => Some(PortObject::try_from(&destination_ports)?),
+        };
 
         Ok(Self {
             name,

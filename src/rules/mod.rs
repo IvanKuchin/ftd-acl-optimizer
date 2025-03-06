@@ -14,6 +14,7 @@ pub enum RulesError {
     ParseRule(#[from] rule::RuleError),
 }
 
+#[derive(Debug)]
 pub struct Rules(Vec<Rule>);
 
 impl Deref for Rules {
@@ -33,7 +34,7 @@ impl TryFrom<Vec<String>> for Rules {
         let mut rules = vec![];
 
         while let Some(rule_lines) = reader.next_rule() {
-            dbg!(&rule_lines);
+            // dbg!(&rule_lines);
             let rule = Rule::try_from(rule_lines)?;
             rules.push(rule);
         }
