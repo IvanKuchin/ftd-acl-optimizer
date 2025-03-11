@@ -85,6 +85,21 @@ fn get_object(lines: &[String]) -> Result<(NetworkObjectItem, usize), NetworkObj
     }
 }
 
+impl NetworkObject {
+    pub fn capacity(&self) -> u64 {
+        self.items.iter().map(|item| item.capacity()).sum()
+    }
+}
+
+impl NetworkObjectItem {
+    pub fn capacity(&self) -> u64 {
+        match self {
+            NetworkObjectItem::ObjectGroup(group) => group.capacity(),
+            NetworkObjectItem::PrefixList(prefix_list) => prefix_list.capacity(),
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -232,5 +247,83 @@ mod tests {
         let result = NetworkObject::try_from(&lines).unwrap();
         assert_eq!(result.name, "Source Networks");
         assert_eq!(result.items.len(), 7);
+    }
+
+    #[test]
+    fn test_network_object_capacity_single_prefix_list() {
+        let lines = vec![
+            "Source Networks       : Internal (group)".to_string(),
+            "10.0.0.0/8".to_string(),
+        ];
+        let network_object = NetworkObject::try_from(&lines).unwrap();
+        assert_eq!(network_object.capacity(), 1);
+    }
+
+    #[test]
+    fn test_network_object_capacity_multiple_prefix_lists() {
+        let lines = vec![
+            "Source Networks       : Internal (group)".to_string(),
+            "10.0.0.0/8".to_string(),
+            "172.16.0.0/12".to_string(),
+            "192.168.0.0/16".to_string(),
+        ];
+        let network_object = NetworkObject::try_from(&lines).unwrap();
+        assert_eq!(network_object.capacity(), 1 + 1 + 1);
+    }
+
+    #[test]
+    fn test_network_object_capacity_with_ip_range() {
+        let lines = vec![
+            "Source Networks       : Internal (group)".to_string(),
+            "192.168.1.1-192.168.1.10".to_string(),
+        ];
+        let network_object = NetworkObject::try_from(&lines).unwrap();
+        assert_eq!(network_object.capacity(), 10); // 10 IPs in the range
+    }
+
+    #[test]
+    fn test_network_object_capacity_empty() {
+        let lines = vec!["Source Networks       : Internal (group)".to_string()];
+        let network_object = NetworkObject::try_from(&lines).unwrap();
+        assert_eq!(network_object.capacity(), 0);
+    }
+
+    #[test]
+    fn test_network_object_capacity_mixed() {
+        let lines = vec![
+            "Source Networks       : Internal (group)".to_string(),
+            "10.0.0.0/8".to_string(),
+            "192.168.1.1-192.168.1.10".to_string(),
+        ];
+        let network_object = NetworkObject::try_from(&lines).unwrap();
+        assert_eq!(network_object.capacity(), 1 + 10);
+    }
+
+    #[test]
+    fn test_network_object_item_capacity_object_group() {
+        let lines = vec!["Internal (group)".to_string(), "10.0.0.0/8".to_string()];
+        let group = Group::try_from(&lines).unwrap();
+        let network_object_item = NetworkObjectItem::ObjectGroup(group);
+        assert_eq!(network_object_item.capacity(), 1);
+    }
+
+    #[test]
+    fn test_network_object_item_capacity_prefix_list() {
+        let prefix_list = PrefixList::from_str("10.0.0.0/8").unwrap();
+        let network_object_item = NetworkObjectItem::PrefixList(prefix_list);
+        assert_eq!(network_object_item.capacity(), 1);
+    }
+
+    #[test]
+    fn test_network_object_item_capacity_multiple_prefix_lists() {
+        let lines = vec![
+            "Internal (group)".to_string(),
+            "10.0.0.0/8".to_string(),
+            "172.16.0.0/12".to_string(),
+            "192.168.0.0/16".to_string(),
+        ];
+        let group = Group::try_from(&lines).unwrap();
+        let network_object_item = NetworkObjectItem::ObjectGroup(group);
+        assert_eq!(network_object_item.capacity(), 1 + 1 + 1);
     }
 }

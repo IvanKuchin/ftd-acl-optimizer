@@ -113,6 +113,15 @@ impl TryFrom<Vec<String>> for Rule {
     }
 }
 
+impl Rule {
+    pub fn capacity(&self) -> u64 {
+        self.source_networks.capacity()
+            * self.destination_networks.capacity()
+            * self.source_ports.as_ref().map_or(1, |p| p.capacity())
+            * self.destination_ports.as_ref().map_or(1, |p| p.capacity())
+    }
+}
+
 fn get_name(lines: &[String]) -> Result<String, RuleError> {
     let line = lines
         .iter()
@@ -145,6 +154,8 @@ fn lines_from_till(lines: &[String], start: &str, end: &[&str]) -> Result<Vec<St
 #[cfg(test)]
 mod tests {
     use super::*;
+    use network_object::NetworkObject;
+    use port_object::PortObject;
 
     #[test]
     fn test_lines_from_till1() {
@@ -268,5 +279,135 @@ mod tests {
         let result = lines_from_till(&lines, "Nonexistent Marker", &["Another Marker"]);
         assert!(result.is_ok());
         assert!(result.unwrap().is_empty());
+    }
+
+    #[test]
+    fn test_rule_capacity_with_all_components() {
+        let source_networks = NetworkObject::try_from(&vec![
+            "Source Networks       : Internal (group)".to_string(),
+            "OBJ-192.168.0.0 (192.168.0.0/16)".to_string(),
+            "OBJ-172.17.0.0 (172.17.0.0/16)".to_string(),
+        ])
+        .unwrap();
+        let destination_networks = NetworkObject::try_from(&vec![
+            "Destination Networks       : OBJ-10.138.0.0_16 (10.138.0.0/16)".to_string(),
+            "10.0.0.0/8".to_string(),
+        ])
+        .unwrap();
+        let source_ports = Some(
+            PortObject::try_from(&vec![
+                "Source Ports       : ephemeral (protocol 6, port 1024)".to_string(),
+            ])
+            .unwrap(),
+        );
+        let destination_ports = Some(
+            PortObject::try_from(&vec![
+                "Destination Ports: HTTPS (protocol 6, port 443)".to_string()
+            ])
+            .unwrap(),
+        );
+
+        let rule = Rule {
+            name: "Custom_rule2".to_string(),
+            source_networks,
+            destination_networks,
+            source_ports,
+            destination_ports,
+        };
+
+        assert_eq!(rule.capacity(), 2 * 2);
+    }
+
+    #[test]
+    fn test_rule_capacity_without_ports() {
+        let source_networks = NetworkObject::try_from(&vec![
+            "Source Networks       : Internal (group)".to_string(),
+            "OBJ-192.168.0.0 (192.168.0.0/16)".to_string(),
+            "OBJ-172.17.0.0 (172.17.0.0/16)".to_string(),
+        ])
+        .unwrap();
+        let destination_networks = NetworkObject::try_from(&vec![
+            "Destination Networks       : OBJ-10.138.0.0_16 (10.138.0.0/16)".to_string(),
+            "10.0.0.0/8".to_string(),
+        ])
+        .unwrap();
+
+        let rule = Rule {
+            name: "Custom_rule2".to_string(),
+            source_networks,
+            destination_networks,
+            source_ports: None,
+            destination_ports: None,
+        };
+
+        assert_eq!(rule.capacity(), 2 * 2);
+    }
+
+    #[test]
+    fn test_rule_capacity_with_one_port() {
+        let source_networks = NetworkObject::try_from(&vec![
+            "Source Networks       : Internal (group)".to_string(),
+            "OBJ-192.168.0.0 (192.168.0.0/16)".to_string(),
+            "OBJ-172.17.0.0 (172.17.0.0/16)".to_string(),
+        ])
+        .unwrap();
+        let destination_networks = NetworkObject::try_from(&vec![
+            "Destination Networks       : OBJ-10.138.0.0_16 (10.138.0.0/16)".to_string(),
+            "10.0.0.0/8".to_string(),
+        ])
+        .unwrap();
+        let source_ports = Some(
+            PortObject::try_from(&vec![
+                "Source Ports       : ephemeral (protocol 6, port 1024)".to_string(),
+            ])
+            .unwrap(),
+        );
+
+        let rule = Rule {
+            name: "Custom_rule2".to_string(),
+            source_networks,
+            destination_networks,
+            source_ports,
+            destination_ports: None,
+        };
+
+        assert_eq!(rule.capacity(), 2 * 2);
+    }
+
+    #[test]
+    fn test_rule_capacity_with_port_ranges() {
+        let source_networks = NetworkObject::try_from(&vec![
+            "Source Networks       : Internal (group)".to_string(),
+            "OBJ-192.168.0.0 (192.168.0.0/16)".to_string(),
+            "OBJ-172.17.0.0 (172.17.0.0/16)".to_string(),
+        ])
+        .unwrap();
+        let destination_networks = NetworkObject::try_from(&vec![
+            "Destination Networks       : OBJ-10.138.0.0_16 (10.138.0.0/16)".to_string(),
+            "10.0.0.0/8".to_string(),
+        ])
+        .unwrap();
+        let source_ports = Some(
+            PortObject::try_from(&vec![
+                "Source Ports       : ephemeral (protocol 6, port 1024-1025)".to_string(),
+            ])
+            .unwrap(),
+        );
+        let destination_ports = Some(
+            PortObject::try_from(&vec![
+                "Destination Ports       : HTTPS (protocol 6, port 443-445)".to_string(),
+            ])
+            .unwrap(),
+        );
+
+        let rule = Rule {
+            name: "Custom_rule2".to_string(),
+            source_networks,
+            destination_networks,
+            source_ports,
+            destination_ports,
+        };
+
+        assert_eq!(rule.capacity(), 2 * 2);
     }
 }

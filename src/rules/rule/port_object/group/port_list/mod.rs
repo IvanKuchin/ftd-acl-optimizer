@@ -1,4 +1,4 @@
-use std::fmt::{self, Display, Formatter};
+use std::fmt;
 use std::str::FromStr;
 
 #[derive(Debug)]
@@ -15,8 +15,8 @@ pub enum PortListError {
     General(String),
 }
 
-impl Display for PortList {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+impl fmt::Display for PortList {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         if self.start == self.end {
             write!(
                 f,
@@ -154,6 +154,12 @@ fn parse_ports(s: &str) -> Result<(u16, u16), PortListError> {
     };
 
     Ok((start, end))
+}
+
+impl PortList {
+    pub fn capacity(&self) -> u64 {
+        1
+    }
 }
 
 #[cfg(test)]

@@ -96,6 +96,7 @@ fn analyze_rule(fname: &PathBuf, rule: &String) -> Result<(), MyError> {
 
     // dbg!(&rules);
     println!("# of rules found: {}", rules.len());
+    println!("rule capacity: {}", rules.capacity());
     todo!("Implement rule analysis");
 }
 

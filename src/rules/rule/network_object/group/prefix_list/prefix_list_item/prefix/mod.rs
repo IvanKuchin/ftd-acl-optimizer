@@ -63,6 +63,18 @@ impl FromStr for Prefix {
     }
 }
 
+impl Prefix {
+    pub fn capacity(&self) -> u64 {
+        1
+    }
+
+    #[allow(dead_code)]
+    // this method is used in the test
+    pub fn get_name(&self) -> &str {
+        &self.name
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

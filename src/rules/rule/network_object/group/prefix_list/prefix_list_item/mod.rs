@@ -42,3 +42,61 @@ impl FromStr for PrefixListItem {
         }
     }
 }
+
+impl PrefixListItem {
+    pub fn capacity(&self) -> u64 {
+        match self {
+            PrefixListItem::Prefix(prefix) => prefix.capacity(),
+            PrefixListItem::IPRange(ip_range) => ip_range.capacity(),
+        }
+    }
+}
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_prefix_list_item_from_str_prefix() {
+        let input = "10.0.0.0/8";
+        let result = PrefixListItem::from_str(input);
+        assert!(result.is_ok());
+        if let PrefixListItem::Prefix(prefix) = result.unwrap() {
+            assert_eq!(prefix.get_name(), input);
+        } else {
+            panic!("Expected Prefix variant");
+        }
+    }
+
+    #[test]
+    fn test_prefix_list_item_from_str_ip_range() {
+        let input = "10.11.12.13-10.11.12.18";
+        let result = PrefixListItem::from_str(input);
+        assert!(result.is_ok());
+        if let PrefixListItem::IPRange(ip_range) = result.unwrap() {
+            assert_eq!(ip_range.get_name(), input);
+        } else {
+            panic!("Expected IPRange variant");
+        }
+    }
+
+    #[test]
+    fn test_prefix_list_item_from_str_invalid() {
+        let input = "invalid";
+        let result = PrefixListItem::from_str(input);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_prefix_list_item_capacity_prefix() {
+        let input = "10.0.0.0/8";
+        let prefix_list_item = PrefixListItem::from_str(input).unwrap();
+        assert_eq!(prefix_list_item.capacity(), 1); // 2^(32-8)
+    }
+
+    #[test]
+    fn test_prefix_list_item_capacity_ip_range() {
+        let input = "10.11.12.13-10.11.12.18";
+        let prefix_list_item = PrefixListItem::from_str(input).unwrap();
+        assert_eq!(prefix_list_item.capacity(), 6); // 10.11.12.13 to 10.11.12.18 inclusive
+    }
+}

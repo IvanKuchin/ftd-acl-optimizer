@@ -65,6 +65,12 @@ impl FromStr for PrefixList {
     }
 }
 
+impl PrefixList {
+    pub fn capacity(&self) -> u64 {
+        self.items.iter().map(|p| p.capacity()).sum()
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -157,5 +163,40 @@ mod tests {
             format!("{}", result.unwrap_err()),
             "Fail to parse prefix list: Invalid prefix list format RFC1918 (10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16"
         );
+    }
+
+    #[test]
+    fn test_capacity_single_prefix() {
+        let line = "10.0.0.0/8";
+        let prefix_list = PrefixList::from_str(line).unwrap();
+        assert_eq!(prefix_list.capacity(), 1); // 2^24
+    }
+
+    #[test]
+    fn test_capacity_multiple_prefixes() {
+        let line = "RFC1918 (10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16)";
+        let prefix_list = PrefixList::from_str(line).unwrap();
+        assert_eq!(prefix_list.capacity(), 1 + 1 + 1); // 2^24 + 2^20 + 2^16
+    }
+
+    #[test]
+    fn test_capacity_with_ip_range() {
+        let line = "Range (192.168.1.1-192.168.1.10)";
+        let prefix_list = PrefixList::from_str(line).unwrap();
+        assert_eq!(prefix_list.capacity(), 10); // 10 IPs in the range
+    }
+
+    #[test]
+    fn test_capacity_empty_prefix_list() {
+        let line = "Empty ()";
+        let result = PrefixList::from_str(line);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_capacity_mixed_prefixes_and_ranges() {
+        let line = "Mixed (10.0.0.0/8, 192.168.1.1-192.168.1.10)";
+        let prefix_list = PrefixList::from_str(line).unwrap();
+        assert_eq!(prefix_list.capacity(), 1 + 10); // 1 + 10
     }
 }

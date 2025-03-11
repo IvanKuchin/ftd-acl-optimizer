@@ -5,6 +5,7 @@ use reader::Reader;
 
 pub mod rule;
 use rule::Rule;
+use std::convert::TryFrom;
 
 #[derive(thiserror::Error, Debug)]
 pub enum RulesError {
@@ -40,5 +41,11 @@ impl TryFrom<Vec<String>> for Rules {
         }
 
         Ok(Self(rules))
+    }
+}
+
+impl Rules {
+    pub fn capacity(&self) -> u64 {
+        self.iter().map(|r| r.capacity()).sum()
     }
 }

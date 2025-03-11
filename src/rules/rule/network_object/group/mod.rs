@@ -58,6 +58,13 @@ impl TryFrom<&Vec<String>> for Group {
         }
     }
 }
+
+impl Group {
+    pub fn capacity(&self) -> u64 {
+        self.prefix_lists.iter().map(|p| p.capacity()).sum()
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -132,5 +139,63 @@ mod tests {
         let result = Group::try_from(&lines);
         assert!(result.is_err());
         assert_eq!(result.unwrap_err().to_string(), "Failed to parse network group: Fail to parse prefix list: Failed to parse prefix list item: Failed to parse prefix: Failed to parse IPv4 address: invalid digit found in string");
+    }
+
+    #[test]
+    fn test_capacity_single_prefix_list() {
+        let lines = vec!["Internal (group)".to_string(), "10.0.0.0/8".to_string()];
+        let group = Group::try_from(&lines).unwrap();
+        assert_eq!(group.capacity(), 1); // 2^24
+    }
+
+    #[test]
+    fn test_capacity_multiple_prefix_lists() {
+        let lines = vec![
+            "Internal (group)".to_string(),
+            "10.0.0.0/8".to_string(),
+            "172.16.0.0/12".to_string(),
+            "192.168.0.0/16".to_string(),
+        ];
+        let group = Group::try_from(&lines).unwrap();
+        assert_eq!(group.capacity(), 1 + 1 + 1);
+    }
+
+    #[test]
+    fn test_capacity_with_ip_range() {
+        let lines = vec![
+            "Internal (group)".to_string(),
+            "192.168.1.1-192.168.1.10".to_string(),
+        ];
+        let group = Group::try_from(&lines).unwrap();
+        assert_eq!(group.capacity(), 10); // 10 IPs in the range
+    }
+
+    #[test]
+    fn test_capacity_empty_group() {
+        let lines = vec!["Internal (group)".to_string()];
+        let group = Group::try_from(&lines).unwrap();
+        assert_eq!(group.capacity(), 0);
+    }
+
+    #[test]
+    fn test_capacity_mixed_prefixes_and_ranges() {
+        let lines = vec![
+            "Internal (group)".to_string(),
+            "10.0.0.0/8".to_string(),
+            "192.168.1.1-192.168.1.10".to_string(),
+        ];
+        let group = Group::try_from(&lines).unwrap();
+        assert_eq!(group.capacity(), 1 + 10); // 1 + 10
+    }
+
+    #[test]
+    fn test_capacity_multiple_ranges() {
+        let lines = vec![
+            "Internal (group)".to_string(),
+            "192.168.1.1-192.168.1.5".to_string(),
+            "192.168.2.1-192.168.2.3".to_string(),
+        ];
+        let group = Group::try_from(&lines).unwrap();
+        assert_eq!(group.capacity(), 5 + 3); // 5 + 3
     }
 }

@@ -78,6 +78,22 @@ fn get_object(lines: &[String]) -> Result<(PortObjectItem, usize), PortObjectErr
         Ok((PortObjectItem::PortList(port_list), 1))
     }
 }
+
+impl PortObject {
+    pub fn capacity(&self) -> u64 {
+        self.items.iter().map(|i| i.capacity()).sum()
+    }
+}
+
+impl PortObjectItem {
+    pub fn capacity(&self) -> u64 {
+        match self {
+            PortObjectItem::PortList(port_list) => port_list.capacity(),
+            PortObjectItem::Group(group) => group.capacity(),
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -166,5 +182,73 @@ mod tests {
             }
             _ => panic!("Expected PortList"),
         }
+    }
+
+    #[test]
+    fn test_port_object_capacity_single_port_list() {
+        let lines = vec!["Destination Ports     : TCP-8080 (protocol 6, port 8080)".to_string()];
+        let port_object = PortObject::try_from(&lines).unwrap();
+        assert_eq!(port_object.capacity(), 1); // Single port
+    }
+
+    #[test]
+    fn test_port_object_capacity_multiple_port_lists() {
+        let lines = vec![
+            "Destination Ports     : HTTP-HTTPS_1 (group)".to_string(),
+            "  HTTP (protocol 6, port 80)".to_string(),
+            "  HTTPS (protocol 6, port 443)".to_string(),
+            "TCP-8080 (protocol 6, port 8080)".to_string(),
+        ];
+        let port_object = PortObject::try_from(&lines).unwrap();
+        assert_eq!(port_object.capacity(), 3); // Three ports
+    }
+
+    #[test]
+    fn test_port_object_capacity_port_range() {
+        let lines = vec![
+            "Destination Ports     : HTTP-HTTPS_1 (group)".to_string(),
+            "  HTTP (protocol 6, port 80-81)".to_string(),
+        ];
+        let port_object = PortObject::try_from(&lines).unwrap();
+        assert_eq!(port_object.capacity(), 1); // Port range 80-81
+    }
+
+    #[test]
+    fn test_port_object_capacity_empty() {
+        let lines = vec!["Destination Ports     : HTTP-HTTPS_1 (group)".to_string()];
+        let port_object = PortObject::try_from(&lines).unwrap();
+        assert_eq!(port_object.capacity(), 0); // No ports
+    }
+
+    #[test]
+    fn test_port_object_capacity_mixed_ports_and_ranges() {
+        let lines = vec![
+            "Destination Ports     : HTTP-HTTPS_1 (group)".to_string(),
+            "  HTTP (protocol 6, port 80)".to_string(),
+            "  HTTPS (protocol 6, port 443-445)".to_string(),
+            "TCP-8080 (protocol 6, port 8080)".to_string(),
+            "protocol 6, port 33434".to_string(),
+        ];
+        let port_object = PortObject::try_from(&lines).unwrap();
+        assert_eq!(port_object.capacity(), 4); // 1 port + 3 ports in range + 1 port + 1 port
+    }
+
+    #[test]
+    fn test_port_object_item_capacity_port_list() {
+        let port_list = PortList::from_str("TCP-8080 (protocol 6, port 8080)").unwrap();
+        let port_object_item = PortObjectItem::PortList(port_list);
+        assert_eq!(port_object_item.capacity(), 1); // Single port
+    }
+
+    #[test]
+    fn test_port_object_item_capacity_group() {
+        let lines = vec![
+            "HTTP-HTTPS_1 (group)".to_string(),
+            "  HTTP (protocol 6, port 80)".to_string(),
+            "  HTTPS (protocol 6, port 443)".to_string(),
+        ];
+        let group = Group::try_from(&lines).unwrap();
+        let port_object_item = PortObjectItem::Group(group);
+        assert_eq!(port_object_item.capacity(), 2); // Two ports
     }
 }

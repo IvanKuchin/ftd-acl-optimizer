@@ -56,15 +56,15 @@ impl Ord for IPv4 {
     }
 }
 
-impl IPv4 {
-    pub fn get_broadcast(&self, mask: u64) -> IPv4 {
-        Self(self.0 | ((1 << (32 - mask)) - 1))
-    }
+// impl IPv4 {
+//     pub fn get_broadcast(&self, mask: u64) -> IPv4 {
+//         Self(self.0 | ((1 << (32 - mask)) - 1))
+//     }
 
-    pub fn get_network(&self, mask: u64) -> IPv4 {
-        Self(self.0 & ((!0u64) << (32 - mask)))
-    }
-}
+//     pub fn get_network(&self, mask: u64) -> IPv4 {
+//         Self(self.0 & ((!0u64) << (32 - mask)))
+//     }
+// }
 
 #[cfg(test)]
 mod tests {
@@ -117,17 +117,17 @@ mod tests {
         assert_eq!(ip1.cmp(&ip1), Ordering::Equal);
     }
 
-    #[test]
-    fn test_ipv4_get_broadcast() {
-        let ip = "192.168.1.0".parse::<IPv4>().unwrap();
-        let broadcast = ip.get_broadcast(24);
-        assert_eq!(broadcast, "192.168.1.255".parse::<IPv4>().unwrap());
-    }
+    // #[test]
+    // fn test_ipv4_get_broadcast() {
+    //     let ip = "192.168.1.0".parse::<IPv4>().unwrap();
+    //     let broadcast = ip.get_broadcast(24);
+    //     assert_eq!(broadcast, "192.168.1.255".parse::<IPv4>().unwrap());
+    // }
 
-    #[test]
-    fn test_ipv4_get_network() {
-        let ip = "192.168.1.128".parse::<IPv4>().unwrap();
-        let network = ip.get_network(24);
-        assert_eq!(network, "192.168.1.0".parse::<IPv4>().unwrap());
-    }
+    // #[test]
+    // fn test_ipv4_get_network() {
+    //     let ip = "192.168.1.128".parse::<IPv4>().unwrap();
+    //     let network = ip.get_network(24);
+    //     assert_eq!(network, "192.168.1.0".parse::<IPv4>().unwrap());
+    // }
 }
