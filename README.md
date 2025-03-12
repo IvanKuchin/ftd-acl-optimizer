@@ -11,7 +11,7 @@ In 2025 those numbers are higher, but still not infinity. This tool intended to 
 
 ## Cisco solution
 
-CDO (Cisco Defense Orchestrator) can analyze policy and produce report. Integrate FNC with CDO then navigate to [Policy insight](https://docs.defenseorchestrator.com/?cid=manage_ftd#!t-policy-insights-.html)
+CDO (Cisco Defense Orchestrator) can analyze policy and produce report. Integrate FMC with CDO then navigate to [Policy insight](https://docs.defenseorchestrator.com/?cid=manage_ftd#!t-policy-insights-.html)
 
 If you don't have access to either of these products - keep reading.
 
