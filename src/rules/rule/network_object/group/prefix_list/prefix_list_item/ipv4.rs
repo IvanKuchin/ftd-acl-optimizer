@@ -35,7 +35,7 @@ impl FromStr for IPv4 {
             }
         }
 
-        let ip = ip_parts[0] << 24 | ip_parts[1] << 16 | ip_parts[2] << 8 | ip_parts[3];
+        let ip = (ip_parts[0] << 24) | (ip_parts[1] << 16) | (ip_parts[2] << 8) | ip_parts[3];
         Ok(IPv4(ip))
     }
 }

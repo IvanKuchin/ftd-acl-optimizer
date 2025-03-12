@@ -58,6 +58,10 @@ impl TryFrom<Vec<String>> for Rule {
                 "Source Ports",
                 "Destination Ports",
                 "Logging",
+                "Users",
+                "URLs",
+                "Safe Search",
+                "Logging Configuration",
             ],
         )?;
         let destination_networks: Vec<_> = lines_from_till(
@@ -68,6 +72,10 @@ impl TryFrom<Vec<String>> for Rule {
                 "Source Ports",
                 "Destination Ports",
                 "Logging",
+                "Users",
+                "URLs",
+                "Safe Search",
+                "Logging Configuration",
             ],
         )?;
 
@@ -79,6 +87,10 @@ impl TryFrom<Vec<String>> for Rule {
                 "Destination Networks",
                 "Destination Ports",
                 "Logging",
+                "Users",
+                "URLs",
+                "Safe Search",
+                "Logging Configuration",
             ],
         )?;
         let destination_ports: Vec<_> = lines_from_till(
@@ -89,6 +101,10 @@ impl TryFrom<Vec<String>> for Rule {
                 "Destination Networks",
                 "Source Ports",
                 "Logging",
+                "Users",
+                "URLs",
+                "Safe Search",
+                "Logging Configuration",
             ],
         )?;
 
