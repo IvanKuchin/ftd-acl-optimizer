@@ -45,7 +45,7 @@ If enterprise has a single app that spread between two on-prem DC and three majo
 
 ## Use case 
 
-If you are getting closer to the limit - don't panic ! It is time to start thinking how to optimize your policies. Policies might not be beautifully arranged into groups anymore, but you;ll get an idea of "how to" tackle the problem. Crossing the limit does **NOT** mean that your policy stop working or box will crash. You probably can leave for another 5-10%. 
+If you are getting closer to the limit - don't panic ! It is time to start thinking how to optimize your policies. Policies might not be beautifully arranged into groups anymore, but you;ll get an idea of "how to" tackle the problem. Crossing the limit does **NOT** mean that your policy stop working or box will crash. You probably have runway for another 5-10%. 
 
 ## How to use
 
