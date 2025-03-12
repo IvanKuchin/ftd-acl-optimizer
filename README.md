@@ -9,10 +9,16 @@ All Cisco FW platforms have limits on number of ACL entries supported. Though th
 
 In 2025 those numbers are higher, but still not infinity. This tool intended to analyze policies configured on FTD and recommend actions to reduce number of ACE by cleaning up shadow items or merge items together.
 
+## Cisco solution
+
+CDO (Cisco Defense Orchestrator) can analyze policy and produce report. Integrate FNC with CDO then navigate to [Policy insight](https://docs.defenseorchestrator.com/?cid=manage_ftd#!t-policy-insights-.html)
+
+If you don't have access to either of these products - keep reading.
+
 ## Calculation # of ACE
 
-1. Use "show access-list element-count"
-2. Use "show access-list"
+1. Use `show access-list element-count`
+2. Use `show access-list`
 
 Underneath math is pretty simple. Let's assume in a single rule we have
 * Two source subnets
