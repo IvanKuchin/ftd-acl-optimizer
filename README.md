@@ -32,7 +32,7 @@ Then sum ACE across all rules and this will be a final number.
 
 ## How to stay inside limit FPR9300 SM-56 (6 Mil ACEs)
 
-What it would take to overflow 5% (300,000 ACE) of the biggest platform for big enterprise.
+What it would take to overflow 5% (300,000 ACE) of the biggest platform (SM-56) for large enterprise.
 
 If enterprise has a single app that spread between two on-prem DC and three major Cloud Providers (Azure, AWS, GCP). It has multiple source and destination networks to controk as well as ports. 
 * 2 x On-prem Data Centers, with each DC having 10 subnets
