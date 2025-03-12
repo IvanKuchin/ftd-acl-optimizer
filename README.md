@@ -45,6 +45,6 @@ If you are getting closer to the limit - don't panic ! It is time to start think
 
 1. Login to FTG CLI
 2. Collect 'show access-control-config`
-3. Run the scripy `frd-acl-optimizer analyze -f collected_output.txt`
+3. Run the scripy `ftd-acl-optimizer analyze -f collected_output.txt`
 
 
