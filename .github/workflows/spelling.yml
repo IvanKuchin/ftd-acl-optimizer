@@ -164,4 +164,4 @@ jobs:
       with:
         experimental_apply_changes_via_bot: 1
         checkout: true
-        ssh_key: "${{ secrets.CHECK_SPELLING }}"spelling
+        ssh_key: "${{ secrets.CHECK_SPELLING }}"
