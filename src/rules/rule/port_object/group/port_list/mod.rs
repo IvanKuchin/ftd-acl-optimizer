@@ -59,7 +59,7 @@ impl FromStr for PortList {
                 Ok(Self::TcpUdp(tcp_udp))
             }
             1 | 58 => {
-                todo!("Implement IPv4 / IPv5 ICMP protocols.");
+                todo!("Implement IPv4 / IPv6 ICMP protocols.");
             }
             _ => {
                 let other_protocol = other_protocol::OtherProtocol::from_str(s)?;
