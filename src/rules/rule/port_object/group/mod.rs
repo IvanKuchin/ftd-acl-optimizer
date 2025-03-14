@@ -52,12 +52,14 @@ impl TryFrom<&Vec<String>> for Group {
 
 impl Group {
     pub fn capacity(&self) -> u64 {
-        self.port_lists.iter().map(|p| p.capacity()).sum()
+        todo!("Implement Group::capacity");
     }
 }
 
 #[cfg(test)]
 mod tests {
+    use crate::rules::rule::port_object::group::port_list::PortListError;
+
     use super::*;
 
     #[test]
@@ -106,8 +108,12 @@ mod tests {
             "  INVALID_PORT".to_string(),
         ];
         let result = Group::try_from(&lines);
+        dbg!(&result);
         assert!(result.is_err());
-        if let Err(GroupError::PortListError(port_list::PortListError::General(msg))) = result {
+        if let Err(GroupError::PortListError(port_list::PortListError::CommonError(
+            port_list::tcp_udp::common::CommonError::Protocol(msg),
+        ))) = result
+        {
             assert_eq!(msg, "Missing 'protocol' prefix in: (INVALID_PORT)");
         } else {
             panic!("Expected GroupError::PortListError");

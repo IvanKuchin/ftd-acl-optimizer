@@ -87,10 +87,7 @@ impl PortObject {
 
 impl PortObjectItem {
     pub fn capacity(&self) -> u64 {
-        match self {
-            PortObjectItem::PortList(port_list) => port_list.capacity(),
-            PortObjectItem::Group(group) => group.capacity(),
-        }
+        todo!("Implement PortObjectItem::capacity");
     }
 }
 
