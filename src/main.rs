@@ -34,7 +34,7 @@ fn main() {
                 .about("Analyze rule from 'show access-control-config'")
                 .arg(
                     arg!(
-                        -f --file <FILE> "(required) Output of show axxess-control-config"
+                        -f --file <FILE> "(required) Output of show access-control-config"
                     )
                     // We don't have syntax yet for optional options, so manually calling `required`
                     .required(true)
