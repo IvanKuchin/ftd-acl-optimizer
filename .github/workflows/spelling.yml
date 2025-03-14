@@ -108,6 +108,8 @@ jobs:
         extra_dictionary_limit: 20
         extra_dictionaries:
           cspell:software-terms/dict/softwareTerms.txt
+          cspell:rust/dict/rust.txt
+
 
   comment-push:
     name: Report (Push)
