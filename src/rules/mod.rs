@@ -5,15 +5,18 @@ use reader::Reader;
 
 pub mod rule;
 use rule::Rule;
+use std::convert::TryFrom;
 
 #[derive(thiserror::Error, Debug)]
 pub enum RulesError {
     #[error("Fail to parse rules: {0}")]
     General(String),
+    #[error("Failed to parse rule: {0}")]
+    ParseRule(#[from] rule::RuleError),
 }
 
-
-pub struct Rules (Vec<Rule>);
+#[derive(Debug)]
+pub struct Rules(Vec<Rule>);
 
 impl Deref for Rules {
     type Target = Vec<Rule>;
@@ -32,8 +35,8 @@ impl TryFrom<Vec<String>> for Rules {
         let mut rules = vec![];
 
         while let Some(rule_lines) = reader.next_rule() {
-            dbg!(&rule_lines);
-            let rule = Rule::default();
+            // dbg!(&rule_lines);
+            let rule = Rule::try_from(rule_lines)?;
             rules.push(rule);
         }
 
@@ -41,3 +44,8 @@ impl TryFrom<Vec<String>> for Rules {
     }
 }
 
+impl Rules {
+    pub fn capacity(&self) -> u64 {
+        self.iter().map(|r| r.capacity()).sum()
+    }
+}

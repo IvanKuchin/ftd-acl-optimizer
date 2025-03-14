@@ -29,8 +29,14 @@ impl FromStr for Prefix {
             2 => {
                 let start = parts[0].parse::<IPv4>()?;
                 let prefix_length: i32 = parts[1].parse()?;
-                if prefix_length < 1 || prefix_length > 32 {
-                    return Err(PrefixError::General(format!("Invalid prefix mask length (expected from 1 to 32) in {}.", &name).to_string()));
+                if !(1..=32).contains(&prefix_length) {
+                    return Err(PrefixError::General(
+                        format!(
+                            "Invalid prefix mask length (expected from 1 to 32) in {}.",
+                            &name
+                        )
+                        .to_string(),
+                    ));
                 }
                 Ok(Prefix {
                     name,
@@ -46,10 +52,26 @@ impl FromStr for Prefix {
                     mask_length: 32,
                 })
             }
-            _ => {
-                return Err(PrefixError::General(format!("Invalid prefix format (expected IPv4 or Prefix/len) in {}.", &name).to_string()));
-            }
+            _ => Err(PrefixError::General(
+                format!(
+                    "Invalid prefix format (expected IPv4 or Prefix/len) in {}.",
+                    &name
+                )
+                .to_string(),
+            )),
         }
+    }
+}
+
+impl Prefix {
+    pub fn capacity(&self) -> u64 {
+        1
+    }
+
+    #[allow(dead_code)]
+    // this method is used in the test
+    pub fn get_name(&self) -> &str {
+        &self.name
     }
 }
 

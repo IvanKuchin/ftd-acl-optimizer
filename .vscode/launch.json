@@ -7,34 +7,43 @@
         {
             "type": "lldb",
             "request": "launch",
-            "name": "Debug executable 'opt'",
+            "name": "Debug executable 'ftd-acl-optimizer'",
             "cargo": {
                 "args": [
                     "build",
-                    "--bin=opt",
-                    "--package=opt"
+                    "--bin=ftd-acl-optimizer",
+                    "--package=ftd-acl-optimizer"
                 ],
                 "filter": {
-                    "name": "opt",
+                    "name": "ftd-acl-optimizer",
                     "kind": "bin"
                 }
             },
-            "args": ["analyze", "-f", "examples/rule_report", "-r", "Custom_rule1"],
-            "cwd": "${workspaceFolder}"
+            "args": [
+                "analyze",
+                "-f",
+                "examples/rule_report",
+                "-r",
+                "Custom_rule1"
+            ],
+            "cwd": "${workspaceFolder}",
+            // "env": {
+            //     "RUST_BACKTRACE": "1"
+            // }
         },
         {
             "type": "lldb",
             "request": "launch",
-            "name": "Debug unit tests in executable 'opt'",
+            "name": "Debug unit tests in executable 'ftd-acl-optimizer'",
             "cargo": {
                 "args": [
                     "test",
                     "--no-run",
-                    "--bin=opt",
-                    "--package=opt"
+                    "--bin=ftd-acl-optimizer",
+                    "--package=ftd-acl-optimizer"
                 ],
                 "filter": {
-                    "name": "opt",
+                    "name": "ftd-acl-optimizer",
                     "kind": "bin"
                 }
             },
