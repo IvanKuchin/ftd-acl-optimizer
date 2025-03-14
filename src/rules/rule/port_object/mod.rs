@@ -61,6 +61,7 @@ impl TryFrom<&Vec<String>> for PortObject {
     }
 }
 
+/// Get the next object from input lines (either Group or PortList) and the number of lines to consume.
 fn get_object(lines: &[String]) -> Result<(PortObjectItem, usize), PortObjectError> {
     if lines.is_empty() {
         return Err(PortObjectError::General(
@@ -81,13 +82,49 @@ fn get_object(lines: &[String]) -> Result<(PortObjectItem, usize), PortObjectErr
 
 impl PortObject {
     pub fn capacity(&self) -> u64 {
-        self.items.iter().map(|i| i.capacity()).sum()
+        let port_lists: Vec<&PortList> = self
+            .items
+            .iter()
+            .flat_map(|item| item.collect_objects())
+            .collect();
+
+        let unmergable_items: Vec<&PortList> = port_lists
+            .iter()
+            .filter(|port_list| !port_list.is_mergable())
+            .copied()
+            .collect();
+
+        let mergable_items: Vec<&PortList> = port_lists
+            .iter()
+            .filter(|port_list| port_list.is_mergable())
+            .copied()
+            .collect();
+
+        let unique_unmergable_items = unique_unmergable_items(unmergable_items);
+
+        unique_unmergable_items.len() as u64 + mergable_items.len() as u64
     }
 }
 
+fn unique_unmergable_items(port_lists: Vec<&PortList>) -> Vec<&PortList> {
+    let unique_items = port_lists
+        .iter()
+        .collect::<std::collections::HashSet<_>>()
+        .into_iter()
+        .copied()
+        .collect();
+
+    unique_items
+}
+
 impl PortObjectItem {
-    pub fn capacity(&self) -> u64 {
-        todo!("Implement PortObjectItem::capacity");
+    pub fn collect_objects(&self) -> Vec<&PortList> {
+        let port_lists: Vec<&PortList> = match self {
+            PortObjectItem::PortList(port_list) => vec![port_list],
+            PortObjectItem::Group(group) => group.port_lists.iter().collect(),
+        };
+
+        port_lists
     }
 }
 
@@ -231,21 +268,288 @@ mod tests {
     }
 
     #[test]
-    fn test_port_object_item_capacity_port_list() {
-        let port_list = PortList::from_str("TCP-8080 (protocol 6, port 8080)").unwrap();
-        let port_object_item = PortObjectItem::PortList(port_list);
-        assert_eq!(port_object_item.capacity(), 1); // Single port
+    fn test_port_object_unique_unmergable_items_1() {
+        let lines = vec![
+            "Destination Ports     : HTTP-HTTPS_1 (group)".to_string(),
+            "  IGMP (protocol 2)".to_string(),
+            "  GGMP (protocol 3)".to_string(),
+            "EIGRP (protocol 88)".to_string(),
+            "ESP (protocol 50)".to_string(),
+            "AH (protocol 51)".to_string(),
+            "protocol 10".to_string(),
+        ];
+        let port_object = PortObject::try_from(&lines).unwrap();
+        let port_lists: Vec<&PortList> = port_object
+            .items
+            .iter()
+            .flat_map(|item| item.collect_objects())
+            .collect();
+
+        let unmergable_items = unique_unmergable_items(port_lists);
+        assert_eq!(unmergable_items.len(), 6);
     }
 
     #[test]
-    fn test_port_object_item_capacity_group() {
+    fn test_port_object_unique_unmergable_items_duplicate() {
         let lines = vec![
-            "HTTP-HTTPS_1 (group)".to_string(),
-            "  HTTP (protocol 6, port 80)".to_string(),
-            "  HTTPS (protocol 6, port 443)".to_string(),
+            "Destination Ports     : HTTP-HTTPS_2 (group)".to_string(),
+            "  BGP (protocol 17)".to_string(),
+            "  RIP (protocol 9)".to_string(),
+            "LDP (protocol 39)".to_string(),
+            "LDP (protocol 39)".to_string(),
+            "PIM (protocol 103)".to_string(),
+            "protocol 6".to_string(),
         ];
-        let group = Group::try_from(&lines).unwrap();
-        let port_object_item = PortObjectItem::Group(group);
-        assert_eq!(port_object_item.capacity(), 2); // Two ports
+        let port_object = PortObject::try_from(&lines).unwrap();
+        let port_lists: Vec<&PortList> = port_object
+            .items
+            .iter()
+            .flat_map(|item| item.collect_objects())
+            .collect();
+
+        let unmergable_items = unique_unmergable_items(port_lists);
+        assert_eq!(unmergable_items.len(), 5);
+    }
+
+    #[test]
+    fn test_port_object_unique_unmergable_items_duplicates_2() {
+        let lines = vec![
+            "Destination Ports     : HTTP-HTTPS_2 (group)".to_string(),
+            "  BGP (protocol 17)".to_string(),
+            "  RIP (protocol 9)".to_string(),
+            "LDP (protocol 39)".to_string(),
+            "ldp (protocol 39)".to_string(),
+            "PIM (protocol 103)".to_string(),
+            "protocol 6".to_string(),
+        ];
+        let port_object = PortObject::try_from(&lines).unwrap();
+        let port_lists: Vec<&PortList> = port_object
+            .items
+            .iter()
+            .flat_map(|item| item.collect_objects())
+            .collect();
+
+        let unmergable_items = unique_unmergable_items(port_lists);
+        assert_eq!(unmergable_items.len(), 5);
+    }
+
+    #[test]
+    fn test_port_object_unique_unmergable_items_duplicates_in_group() {
+        let lines = vec![
+            "Destination Ports     : HTTP-HTTPS_2 (group)".to_string(),
+            "  BGP (protocol 17)".to_string(),
+            "  RIP (protocol 9)".to_string(),
+            "  LDP (protocol 39)".to_string(),
+            "  ldp (protocol 39)".to_string(),
+            "PIM (protocol 103)".to_string(),
+            "protocol 6".to_string(),
+        ];
+        let port_object = PortObject::try_from(&lines).unwrap();
+        let port_lists: Vec<&PortList> = port_object
+            .items
+            .iter()
+            .flat_map(|item| item.collect_objects())
+            .collect();
+
+        let unmergable_items = unique_unmergable_items(port_lists);
+        assert_eq!(unmergable_items.len(), 5);
+    }
+
+    #[test]
+    fn test_port_object_unique_unmergable_items_duplicates_cross_groups() {
+        let lines = vec![
+            "Destination Ports     : MyGroup1 (group)".to_string(),
+            "  BGP (protocol 17)".to_string(),
+            "  RIP (protocol 9)".to_string(),
+            "  LDP (protocol 39)".to_string(),
+            "MyGroup2 (group)".to_string(),
+            "  ldp (protocol 39)".to_string(),
+            "PIM (protocol 103)".to_string(),
+            "protocol 6".to_string(),
+        ];
+        let port_object = PortObject::try_from(&lines).unwrap();
+        let port_lists: Vec<&PortList> = port_object
+            .items
+            .iter()
+            .flat_map(|item| item.collect_objects())
+            .collect();
+
+        let unmergable_items = unique_unmergable_items(port_lists);
+        assert_eq!(unmergable_items.len(), 5);
+    }
+
+    #[test]
+    fn test_port_object_unique_unmergable_items_duplicates_cross_groups_2() {
+        let lines = vec![
+            "Destination Ports     : MyGroup1 (group)".to_string(),
+            "  BGP (protocol 17)".to_string(),
+            "  RIP (protocol 9)".to_string(),
+            "  LDP (protocol 39)".to_string(),
+            "MyGroup2 (group)".to_string(),
+            "  ldp (protocol 39)".to_string(),
+            "PIM (protocol 103)".to_string(),
+            "  LdP (protocol 39)".to_string(),
+            "protocol 6".to_string(),
+        ];
+        let port_object = PortObject::try_from(&lines).unwrap();
+        let port_lists: Vec<&PortList> = port_object
+            .items
+            .iter()
+            .flat_map(|item| item.collect_objects())
+            .collect();
+
+        let unmergable_items = unique_unmergable_items(port_lists);
+        assert_eq!(unmergable_items.len(), 5);
+    }
+
+    #[test]
+    fn test_port_object_unique_unmergable_items_duplicates_cross_groups_wo_name() {
+        let lines = vec![
+            "Destination Ports     : MyGroup1 (group)".to_string(),
+            "  BGP (protocol 17)".to_string(),
+            "  RIP (protocol 9)".to_string(),
+            "  LDP (protocol 39)".to_string(),
+            "MyGroup2 (group)".to_string(),
+            "  ldp (protocol 39)".to_string(),
+            "PIM (protocol 103)".to_string(),
+            "protocol 39".to_string(),
+            "protocol 6".to_string(),
+        ];
+        let port_object = PortObject::try_from(&lines).unwrap();
+        let port_lists: Vec<&PortList> = port_object
+            .items
+            .iter()
+            .flat_map(|item| item.collect_objects())
+            .collect();
+
+        let unmergable_items = unique_unmergable_items(port_lists);
+        assert_eq!(unmergable_items.len(), 5);
+    }
+
+    #[test]
+    fn test_port_object_capacity_unmergable_items_1() {
+        let lines = vec![
+            "Destination Ports     : HTTP-HTTPS_1 (group)".to_string(),
+            "  IGMP (protocol 2)".to_string(),
+            "  GGMP (protocol 3)".to_string(),
+            "EIGRP (protocol 88)".to_string(),
+            "ESP (protocol 50)".to_string(),
+            "AH (protocol 51)".to_string(),
+            "protocol 10".to_string(),
+        ];
+        assert_eq!(PortObject::try_from(&lines).unwrap().capacity(), 6);
+    }
+
+    #[test]
+    fn test_port_object_capacity_unmergable_items_duplicate() {
+        let lines = vec![
+            "Destination Ports     : HTTP-HTTPS_2 (group)".to_string(),
+            "  BGP (protocol 17)".to_string(),
+            "  RIP (protocol 9)".to_string(),
+            "LDP (protocol 39)".to_string(),
+            "LDP (protocol 39)".to_string(),
+            "PIM (protocol 103)".to_string(),
+            "protocol 6".to_string(),
+        ];
+        assert_eq!(PortObject::try_from(&lines).unwrap().capacity(), 5);
+    }
+
+    #[test]
+    fn test_port_object_capacity_unmergable_items_duplicates_2() {
+        let lines = vec![
+            "Destination Ports     : HTTP-HTTPS_2 (group)".to_string(),
+            "  BGP (protocol 17)".to_string(),
+            "  RIP (protocol 9)".to_string(),
+            "LDP (protocol 39)".to_string(),
+            "ldp (protocol 39)".to_string(),
+            "PIM (protocol 103)".to_string(),
+            "protocol 6".to_string(),
+        ];
+        assert_eq!(PortObject::try_from(&lines).unwrap().capacity(), 5);
+    }
+
+    #[test]
+    fn test_port_object_capacity_unmergable_items_duplicates_in_group() {
+        let lines = vec![
+            "Destination Ports     : HTTP-HTTPS_2 (group)".to_string(),
+            "  BGP (protocol 17)".to_string(),
+            "  RIP (protocol 9)".to_string(),
+            "  LDP (protocol 39)".to_string(),
+            "  ldp (protocol 39)".to_string(),
+            "PIM (protocol 103)".to_string(),
+            "protocol 6".to_string(),
+        ];
+        assert_eq!(PortObject::try_from(&lines).unwrap().capacity(), 5);
+    }
+
+    #[test]
+    fn test_port_object_capacity_unmergable_items_duplicates_cross_groups() {
+        let lines = vec![
+            "Destination Ports     : MyGroup1 (group)".to_string(),
+            "  BGP (protocol 17)".to_string(),
+            "  RIP (protocol 9)".to_string(),
+            "  LDP (protocol 39)".to_string(),
+            "MyGroup2 (group)".to_string(),
+            "  ldp (protocol 39)".to_string(),
+            "PIM (protocol 103)".to_string(),
+            "protocol 6".to_string(),
+        ];
+        assert_eq!(PortObject::try_from(&lines).unwrap().capacity(), 5);
+    }
+
+    #[test]
+    fn test_port_object_capacity_unmergable_items_duplicates_cross_groups_2() {
+        let lines = vec![
+            "Destination Ports     : MyGroup1 (group)".to_string(),
+            "  BGP (protocol 17)".to_string(),
+            "  RIP (protocol 9)".to_string(),
+            "  LDP (protocol 39)".to_string(),
+            "MyGroup2 (group)".to_string(),
+            "  ldp (protocol 39)".to_string(),
+            "PIM (protocol 103)".to_string(),
+            "LdP (protocol 39)".to_string(),
+            "protocol 6".to_string(),
+        ];
+        assert_eq!(PortObject::try_from(&lines).unwrap().capacity(), 5);
+    }
+
+    #[test]
+    fn test_port_object_capacity_unmergable_items_duplicates_cross_groups_wo_name() {
+        let lines = vec![
+            "Destination Ports     : MyGroup1 (group)".to_string(),
+            "  BGP (protocol 17)".to_string(),
+            "  RIP (protocol 9)".to_string(),
+            "  LDP (protocol 39)".to_string(),
+            "MyGroup2 (group)".to_string(),
+            "  ldp (protocol 39)".to_string(),
+            "PIM (protocol 103)".to_string(),
+            "protocol 39".to_string(),
+            "protocol 6".to_string(),
+        ];
+        assert_eq!(PortObject::try_from(&lines).unwrap().capacity(), 5);
+    }
+
+    #[test]
+    fn test_port_object_capacity_no_duplicates() {
+        let lines = vec![
+            "Destination Ports     : NonTCP-NonUDP_1 (group)".to_string(),
+            "  MUX (protocol 18)".to_string(),
+            "  RIP (protocol 9)".to_string(),
+            "EH (protocol 88)".to_string(),
+            "protocol 6".to_string(),
+        ];
+        assert_eq!(PortObject::try_from(&lines).unwrap().capacity(), 4);
+    }
+
+    #[test]
+    fn test_port_object_capacity_with_additional_protocols() {
+        let lines = vec![
+            "Destination Ports     : NonTCP-NonUDP_2 (group)".to_string(),
+            "  GRE (protocol 47)".to_string(),
+            "  ESP (protocol 50)".to_string(),
+            "  AH (protocol 51)".to_string(),
+            "protocol 6".to_string(),
+        ];
+        assert_eq!(PortObject::try_from(&lines).unwrap().capacity(), 4);
     }
 }

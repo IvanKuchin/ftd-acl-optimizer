@@ -3,11 +3,13 @@ use std::str::FromStr;
 
 use tcp_udp::common;
 
+mod icmp;
 mod other_protocol;
 pub mod tcp_udp;
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq, Hash)]
 pub enum PortList {
+    Icmp(icmp::Icmp),
     TcpUdp(tcp_udp::TcpUdp),
     OtherProtocol(other_protocol::OtherProtocol),
 }
@@ -16,6 +18,8 @@ pub enum PortList {
 pub enum PortListError {
     #[error("Failed to parse port list: {0}")]
     General(String),
+    #[error("Failed to parse port list: {0}")]
+    IcmpError(#[from] icmp::IcmpError),
     #[error("Failed to parse port list: {0}")]
     TcpUdpError(#[from] tcp_udp::TcpUdpError),
     #[error("Failed to parse port list: {0}")]
@@ -29,6 +33,7 @@ impl fmt::Display for PortList {
         match self {
             PortList::TcpUdp(tcp_udp) => write!(f, "{}", tcp_udp),
             PortList::OtherProtocol(other_protocol) => write!(f, "{}", other_protocol),
+            PortList::Icmp(icmp) => write!(f, "{}", icmp),
         }
     }
 }
@@ -59,12 +64,30 @@ impl FromStr for PortList {
                 Ok(Self::TcpUdp(tcp_udp))
             }
             1 | 58 => {
-                todo!("Implement IPv4 / IPv6 ICMP protocols.");
+                let icmp = icmp::Icmp::from_str(s)?;
+                Ok(Self::Icmp(icmp))
             }
             _ => {
                 let other_protocol = other_protocol::OtherProtocol::from_str(s)?;
                 Ok(Self::OtherProtocol(other_protocol))
             }
+        }
+    }
+}
+
+impl PortList {
+    pub fn is_mergable(&self) -> bool {
+        match self {
+            PortList::TcpUdp(tcp_udp) => tcp_udp.is_mergable(),
+            PortList::OtherProtocol(other_protocol) => other_protocol.is_mergable(),
+            PortList::Icmp(icmp) => icmp.is_mergable(),
+        }
+    }
+    pub fn get_protocol(&self) -> u8 {
+        match self {
+            PortList::TcpUdp(tcp_udp) => tcp_udp.get_protocol(),
+            PortList::OtherProtocol(other_protocol) => other_protocol.get_protocol(),
+            PortList::Icmp(icmp) => icmp.get_protocol(),
         }
     }
 }

@@ -1,4 +1,5 @@
 use std::fmt;
+use std::hash::{Hash, Hasher};
 use std::str::FromStr;
 
 pub mod common;
@@ -97,6 +98,35 @@ fn parse_ports(s: &str) -> Result<(u16, u16), TcpUdpError> {
     };
 
     Ok((start, end))
+}
+
+impl TcpUdp {
+    pub fn is_mergable(&self) -> bool {
+        true
+    }
+
+    pub fn get_protocol(&self) -> u8 {
+        self.protocol
+    }
+    pub fn get_ports_range(&self) -> (u16, u16) {
+        (self.start, self.end)
+    }
+}
+
+impl PartialEq for TcpUdp {
+    fn eq(&self, other: &Self) -> bool {
+        self.protocol == other.protocol && self.start == other.start && self.end == other.end
+    }
+}
+
+impl Eq for TcpUdp {}
+
+impl Hash for TcpUdp {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.protocol.hash(state);
+        self.start.hash(state);
+        self.end.hash(state);
+    }
 }
 
 #[cfg(test)]
