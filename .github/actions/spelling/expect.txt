@@ -27,4 +27,5 @@ serverpage
 tcp
 thiserror
 udp
+unmergeable
 vec
