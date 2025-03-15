@@ -22,6 +22,7 @@ ipv
 ldp
 len
 mergable
+mergeable
 PIM
 serverpage
 tcp

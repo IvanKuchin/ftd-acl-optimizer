@@ -384,8 +384,8 @@ mod tests {
     fn test_port_object_unique_unmergeable_items_duplicates_3() {
         let lines = vec![
             "Destination Ports     : ICMP (group)".to_string(),
-            "  IVMP1 (protocol 1, type 4, code 11)".to_string(),
-            "IVMP1 (protocol 1, type 4, code 12)".to_string(),
+            "  ICMP1 (protocol 1, type 4, code 11)".to_string(),
+            "ICMP1 (protocol 1, type 4, code 12)".to_string(),
         ];
         let port_object = PortObject::try_from(&lines).unwrap();
         let port_lists: Vec<&PortList> = port_object
@@ -402,9 +402,9 @@ mod tests {
     fn test_port_object_unique_unmergeable_items_duplicates_4() {
         let lines = vec![
             "Destination Ports     : ICMP (group)".to_string(),
-            "  IVMP1 (protocol 1, type 4, code 11)".to_string(),
-            "IVMP2 (protocol 1, type 4)".to_string(),
-            "IVMP3 (protocol 1, type 4, code 12)".to_string(),
+            "  ICMP1 (protocol 1, type 4, code 11)".to_string(),
+            "ICMP2 (protocol 1, type 4)".to_string(),
+            "ICMP3 (protocol 1, type 4, code 12)".to_string(),
         ];
         let port_object = PortObject::try_from(&lines).unwrap();
         let port_lists: Vec<&PortList> = port_object
