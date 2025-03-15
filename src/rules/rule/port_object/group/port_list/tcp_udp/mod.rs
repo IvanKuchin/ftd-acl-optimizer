@@ -101,7 +101,7 @@ fn parse_ports(s: &str) -> Result<(u16, u16), TcpUdpError> {
 }
 
 impl TcpUdp {
-    pub fn is_mergable(&self) -> bool {
+    pub fn is_l4(&self) -> bool {
         true
     }
 

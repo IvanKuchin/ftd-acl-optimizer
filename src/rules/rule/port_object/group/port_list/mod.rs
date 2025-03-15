@@ -76,11 +76,11 @@ impl FromStr for PortList {
 }
 
 impl PortList {
-    pub fn is_mergable(&self) -> bool {
+    pub fn is_l4(&self) -> bool {
         match self {
-            PortList::TcpUdp(tcp_udp) => tcp_udp.is_mergable(),
-            PortList::OtherProtocol(other_protocol) => other_protocol.is_mergable(),
-            PortList::Icmp(icmp) => icmp.is_mergable(),
+            PortList::TcpUdp(tcp_udp) => tcp_udp.is_l4(),
+            PortList::OtherProtocol(other_protocol) => other_protocol.is_l4(),
+            PortList::Icmp(icmp) => icmp.is_l4(),
         }
     }
     pub fn get_protocol(&self) -> u8 {

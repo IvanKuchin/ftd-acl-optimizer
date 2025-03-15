@@ -46,7 +46,7 @@ impl FromStr for OtherProtocol {
 }
 
 impl OtherProtocol {
-    pub fn is_mergable(&self) -> bool {
+    pub fn is_l4(&self) -> bool {
         false
     }
     pub fn get_protocol(&self) -> u8 {
@@ -115,6 +115,6 @@ mod tests {
             name: "IGMP".to_string(),
             protocol: 2,
         };
-        assert!(!port_obj.is_mergable());
+        assert!(!port_obj.is_l4());
     }
 }

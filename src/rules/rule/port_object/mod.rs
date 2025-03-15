@@ -90,25 +90,25 @@ impl PortObject {
             .flat_map(|item| item.collect_objects())
             .collect();
 
-        let unmergeable_items: Vec<&PortList> = port_lists
+        let l3_items: Vec<&PortList> = port_lists
             .iter()
-            .filter(|port_list| !port_list.is_mergable())
+            .filter(|port_list| !port_list.is_l4())
             .copied()
             .collect();
-        let unique_unmergeable_items = unique_unmergeable_items(unmergeable_items);
+        let unique_l3_items = unique_l3_items(l3_items);
 
-        let mergable_items: Vec<&PortList> = port_lists
+        let l4_items: Vec<&PortList> = port_lists
             .iter()
-            .filter(|port_list| port_list.is_mergable())
+            .filter(|port_list| port_list.is_l4())
             .copied()
             .collect();
-        let merged_ranges = merge_and_count_items(mergable_items);
+        let merged_l4 = merge_l4_items(l4_items);
 
-        unique_unmergeable_items.len() as u64 + merged_ranges.len() as u64
+        unique_l3_items.len() as u64 + merged_l4.len() as u64
     }
 }
 
-fn unique_unmergeable_items(port_lists: Vec<&PortList>) -> Vec<&PortList> {
+fn unique_l3_items(port_lists: Vec<&PortList>) -> Vec<&PortList> {
     let unique_items = port_lists
         .iter()
         .collect::<std::collections::HashSet<_>>()
@@ -119,7 +119,7 @@ fn unique_unmergeable_items(port_lists: Vec<&PortList>) -> Vec<&PortList> {
     unique_items
 }
 
-fn merge_and_count_items(port_lists: Vec<&PortList>) -> Vec<(u32, u32)> {
+fn merge_l4_items(port_lists: Vec<&PortList>) -> Vec<(u32, u32)> {
     let port_ranges = port_lists
         .iter()
         .map(|item| {
@@ -151,12 +151,12 @@ fn merge_ranges(port_ranges: Vec<(u32, u32)>) -> Vec<(u32, u32)> {
     port_ranges.sort_unstable();
     let mut merged_ranges = vec![];
     let mut current_range = port_ranges[0];
-    for range in port_ranges.iter().skip(1) {
-        if range.0 <= current_range.1 + 1 {
-            current_range = (current_range.0, max(current_range.1, range.1));
+    for next_range in port_ranges.iter().skip(1) {
+        if current_range.1 + 1 >= next_range.0 {
+            current_range = (current_range.0, max(current_range.1, next_range.1));
         } else {
             merged_ranges.push(current_range);
-            current_range = *range;
+            current_range = *next_range;
         }
     }
     merged_ranges.push(current_range);
@@ -315,7 +315,7 @@ mod tests {
     }
 
     #[test]
-    fn test_port_object_unique_unmergeable_items_1() {
+    fn test_port_object_unique_l3_items_1() {
         let lines = vec![
             "Destination Ports     : HTTP-HTTPS_1 (group)".to_string(),
             "  IGMP (protocol 2)".to_string(),
@@ -332,12 +332,12 @@ mod tests {
             .flat_map(|item| item.collect_objects())
             .collect();
 
-        let unmergeable_items = unique_unmergeable_items(port_lists);
-        assert_eq!(unmergeable_items.len(), 6);
+        let l3_items = unique_l3_items(port_lists);
+        assert_eq!(l3_items.len(), 6);
     }
 
     #[test]
-    fn test_port_object_unique_unmergeable_items_duplicate() {
+    fn test_port_object_unique_l3_items_duplicate() {
         let lines = vec![
             "Destination Ports     : HTTP-HTTPS_2 (group)".to_string(),
             "  BGP (protocol 17)".to_string(),
@@ -354,12 +354,12 @@ mod tests {
             .flat_map(|item| item.collect_objects())
             .collect();
 
-        let unmergeable_items = unique_unmergeable_items(port_lists);
-        assert_eq!(unmergeable_items.len(), 5);
+        let l3_items = unique_l3_items(port_lists);
+        assert_eq!(l3_items.len(), 5);
     }
 
     #[test]
-    fn test_port_object_unique_unmergeable_items_duplicates_2() {
+    fn test_port_object_unique_l3_items_duplicates_2() {
         let lines = vec![
             "Destination Ports     : SomeProtocols (group)".to_string(),
             "  BGP (protocol 17)".to_string(),
@@ -376,12 +376,12 @@ mod tests {
             .flat_map(|item| item.collect_objects())
             .collect();
 
-        let unmergeable_items = unique_unmergeable_items(port_lists);
-        assert_eq!(unmergeable_items.len(), 5);
+        let l3_items = unique_l3_items(port_lists);
+        assert_eq!(l3_items.len(), 5);
     }
 
     #[test]
-    fn test_port_object_unique_unmergeable_items_duplicates_3() {
+    fn test_port_object_unique_l3_items_duplicates_3() {
         let lines = vec![
             "Destination Ports     : ICMP (group)".to_string(),
             "  ICMP1 (protocol 1, type 4, code 11)".to_string(),
@@ -394,12 +394,12 @@ mod tests {
             .flat_map(|item| item.collect_objects())
             .collect();
 
-        let unmergeable_items = unique_unmergeable_items(port_lists);
-        assert_eq!(unmergeable_items.len(), 2);
+        let l3_items = unique_l3_items(port_lists);
+        assert_eq!(l3_items.len(), 2);
     }
 
     #[test]
-    fn test_port_object_unique_unmergeable_items_duplicates_4() {
+    fn test_port_object_unique_l3_items_duplicates_4() {
         let lines = vec![
             "Destination Ports     : ICMP (group)".to_string(),
             "  ICMP1 (protocol 1, type 4, code 11)".to_string(),
@@ -413,12 +413,31 @@ mod tests {
             .flat_map(|item| item.collect_objects())
             .collect();
 
-        let unmergeable_items = unique_unmergeable_items(port_lists);
-        assert_eq!(unmergeable_items.len(), 3);
+        let l3_items = unique_l3_items(port_lists);
+        assert_eq!(l3_items.len(), 3);
     }
 
     #[test]
-    fn test_port_object_unique_unmergeable_items_duplicates_in_group() {
+    fn test_port_object_unique_l3_items_duplicates_5() {
+        let lines = vec![
+            "Destination Ports     : ICMP (group)".to_string(),
+            "  ICMP1 (protocol 1, type 4, code 11)".to_string(),
+            "ICMP2 (protocol 1, type 4, code 11)".to_string(),
+        ];
+        let port_object = PortObject::try_from(&lines).unwrap();
+        let port_lists: Vec<&PortList> = port_object
+            .items
+            .iter()
+            .flat_map(|item| item.collect_objects())
+            .collect();
+
+        let l3_items = unique_l3_items(port_lists);
+
+        assert_eq!(l3_items.len(), 1);
+    }
+
+    #[test]
+    fn test_port_object_unique_l3_items_duplicates_in_group() {
         let lines = vec![
             "Destination Ports     : HTTP-HTTPS_2 (group)".to_string(),
             "  BGP (protocol 17)".to_string(),
@@ -435,12 +454,12 @@ mod tests {
             .flat_map(|item| item.collect_objects())
             .collect();
 
-        let unmergeable_items = unique_unmergeable_items(port_lists);
-        assert_eq!(unmergeable_items.len(), 5);
+        let l3_items = unique_l3_items(port_lists);
+        assert_eq!(l3_items.len(), 5);
     }
 
     #[test]
-    fn test_port_object_unique_unmergeable_items_duplicates_cross_groups() {
+    fn test_port_object_unique_l3_items_duplicates_cross_groups() {
         let lines = vec![
             "Destination Ports     : MyGroup1 (group)".to_string(),
             "  BGP (protocol 17)".to_string(),
@@ -458,12 +477,12 @@ mod tests {
             .flat_map(|item| item.collect_objects())
             .collect();
 
-        let unmergeable_items = unique_unmergeable_items(port_lists);
-        assert_eq!(unmergeable_items.len(), 5);
+        let l3_items = unique_l3_items(port_lists);
+        assert_eq!(l3_items.len(), 5);
     }
 
     #[test]
-    fn test_port_object_unique_unmergeable_items_duplicates_cross_groups_2() {
+    fn test_port_object_unique_l3_items_duplicates_cross_groups_2() {
         let lines = vec![
             "Destination Ports     : MyGroup1 (group)".to_string(),
             "  BGP (protocol 17)".to_string(),
@@ -482,12 +501,12 @@ mod tests {
             .flat_map(|item| item.collect_objects())
             .collect();
 
-        let unmergeable_items = unique_unmergeable_items(port_lists);
-        assert_eq!(unmergeable_items.len(), 5);
+        let l3_items = unique_l3_items(port_lists);
+        assert_eq!(l3_items.len(), 5);
     }
 
     #[test]
-    fn test_port_object_unique_unmergeable_items_duplicates_cross_groups_wo_name() {
+    fn test_port_object_unique_l3_items_duplicates_cross_groups_wo_name() {
         let lines = vec![
             "Destination Ports     : MyGroup1 (group)".to_string(),
             "  BGP (protocol 17)".to_string(),
@@ -506,12 +525,12 @@ mod tests {
             .flat_map(|item| item.collect_objects())
             .collect();
 
-        let unmergeable_items = unique_unmergeable_items(port_lists);
-        assert_eq!(unmergeable_items.len(), 5);
+        let l3_items = unique_l3_items(port_lists);
+        assert_eq!(l3_items.len(), 5);
     }
 
     #[test]
-    fn test_port_object_capacity_unmergeable_items_1() {
+    fn test_port_object_capacity_l3_items_1() {
         let lines = vec![
             "Destination Ports     : HTTP-HTTPS_1 (group)".to_string(),
             "  IGMP (protocol 2)".to_string(),
@@ -525,7 +544,7 @@ mod tests {
     }
 
     #[test]
-    fn test_port_object_capacity_unmergeable_items_duplicate() {
+    fn test_port_object_capacity_l3_items_duplicate() {
         let lines = vec![
             "Destination Ports     : HTTP-HTTPS_2 (group)".to_string(),
             "  BGP (protocol 17)".to_string(),
@@ -539,7 +558,7 @@ mod tests {
     }
 
     #[test]
-    fn test_port_object_capacity_unmergeable_items_duplicates_2() {
+    fn test_port_object_capacity_l3_items_duplicates_2() {
         let lines = vec![
             "Destination Ports     : HTTP-HTTPS_2 (group)".to_string(),
             "  BGP (protocol 17)".to_string(),
@@ -553,7 +572,7 @@ mod tests {
     }
 
     #[test]
-    fn test_port_object_capacity_unmergeable_items_duplicates_in_group() {
+    fn test_port_object_capacity_l3_items_duplicates_in_group() {
         let lines = vec![
             "Destination Ports     : HTTP-HTTPS_2 (group)".to_string(),
             "  BGP (protocol 17)".to_string(),
@@ -567,7 +586,7 @@ mod tests {
     }
 
     #[test]
-    fn test_port_object_capacity_unmergeable_items_duplicates_cross_groups() {
+    fn test_port_object_capacity_l3_items_duplicates_cross_groups() {
         let lines = vec![
             "Destination Ports     : MyGroup1 (group)".to_string(),
             "  BGP (protocol 17)".to_string(),
@@ -582,7 +601,7 @@ mod tests {
     }
 
     #[test]
-    fn test_port_object_capacity_unmergeable_items_duplicates_cross_groups_2() {
+    fn test_port_object_capacity_l3_items_duplicates_cross_groups_2() {
         let lines = vec![
             "Destination Ports     : MyGroup1 (group)".to_string(),
             "  BGP (protocol 17)".to_string(),
@@ -598,7 +617,7 @@ mod tests {
     }
 
     #[test]
-    fn test_port_object_capacity_unmergeable_items_duplicates_cross_groups_wo_name() {
+    fn test_port_object_capacity_l3_items_duplicates_cross_groups_wo_name() {
         let lines = vec![
             "Destination Ports     : MyGroup1 (group)".to_string(),
             "  BGP (protocol 17)".to_string(),
@@ -638,7 +657,7 @@ mod tests {
     }
 
     #[test]
-    fn test_port_object_merge_ranges() {
+    fn test_port_object_merge_ranges_1() {
         let port_ranges = vec![(80, 80), (443, 443), (80, 81), (33434, 33434)];
 
         let merged_ranges = merge_ranges(port_ranges);
@@ -699,6 +718,20 @@ mod tests {
     }
 
     #[test]
+    fn test_port_object_merge_ranges_6() {
+        let port_ranges = vec![
+            (65533, 65533),
+            (65535, 65535),
+            (65534, 65535),
+            (65535, 65535),
+        ];
+
+        let merged_ranges = merge_ranges(port_ranges);
+
+        assert_eq!(merged_ranges, vec![(65533, 65535)]);
+    }
+
+    #[test]
     fn test_port_object_merge_ranges_empty() {
         let port_ranges = vec![];
 
@@ -726,7 +759,7 @@ mod tests {
     }
 
     #[test]
-    fn test_port_object_capacity_mergeable_items_duplicates_1() {
+    fn test_port_object_capacity_l4_items_duplicates_1() {
         let lines = vec![
             "Destination Ports     : MyGroup1 (group)".to_string(),
             "  HTTP (protocol 6, port 80)".to_string(),
@@ -736,7 +769,7 @@ mod tests {
     }
 
     #[test]
-    fn test_port_object_capacity_mergeable_items_duplicates_2() {
+    fn test_port_object_capacity_l4_items_duplicates_2() {
         let lines = vec![
             "Destination Ports     : MyGroup1 (group)".to_string(),
             "  HTTP (protocol 6, port 80-81)".to_string(),
@@ -746,7 +779,7 @@ mod tests {
     }
 
     #[test]
-    fn test_port_object_capacity_mergeable_items_duplicates_3() {
+    fn test_port_object_capacity_l4_items_duplicates_3() {
         let lines = vec![
             "Destination Ports     : MyGroup1 (group)".to_string(),
             "  HTTP (protocol 6, port 80-81)".to_string(),
@@ -756,7 +789,7 @@ mod tests {
     }
 
     #[test]
-    fn test_port_object_capacity_mergeable_items_duplicates_4() {
+    fn test_port_object_capacity_l4_items_duplicates_4() {
         let lines = vec![
             "Destination Ports     : MyGroup1 (group)".to_string(),
             "  HTTP (protocol 6, port 80-81)".to_string(),
@@ -767,7 +800,7 @@ mod tests {
     }
 
     #[test]
-    fn test_port_object_capacity_mergeable_items_overlap_1() {
+    fn test_port_object_capacity_l4_items_overlap_1() {
         let lines = vec![
             "Destination Ports     : MyGroup1 (group)".to_string(),
             "  HTTP (protocol 6, port 85-90)".to_string(),
@@ -778,7 +811,7 @@ mod tests {
     }
 
     #[test]
-    fn test_port_object_capacity_mergeable_items_overlap_2() {
+    fn test_port_object_capacity_l4_items_overlap_2() {
         let lines = vec![
             "Destination Ports     : MyGroup1 (group)".to_string(),
             "  HTTP (protocol 6, port 81-82)".to_string(),
@@ -791,7 +824,7 @@ mod tests {
     }
 
     #[test]
-    fn test_port_object_capacity_mergeable_items_overlap_3() {
+    fn test_port_object_capacity_l4_items_overlap_3() {
         let lines = vec![
             "Destination Ports     : MyGroup1 (group)".to_string(),
             "  HTTP (protocol 6, port 81-82)".to_string(),
