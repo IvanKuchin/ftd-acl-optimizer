@@ -108,7 +108,7 @@ impl TcpUdp {
     pub fn get_protocol(&self) -> u8 {
         self.protocol
     }
-    pub fn get_ports_range(&self) -> (u16, u16) {
+    pub fn get_ports(&self) -> (u16, u16) {
         (self.start, self.end)
     }
 }

@@ -81,7 +81,9 @@ fn get_object(lines: &[String]) -> Result<(PortObjectItem, usize), PortObjectErr
 }
 
 impl PortObject {
-    pub fn capacity(&self) -> u64 {
+    // used strictly for testing
+    // capacity calculation does not work on a port object level, it should be done on a rule level
+    fn _capacity(&self) -> u64 {
         let port_lists: Vec<&PortList> = self
             .items
             .iter()
@@ -93,16 +95,16 @@ impl PortObject {
             .filter(|port_list| !port_list.is_mergable())
             .copied()
             .collect();
+        let unique_unmergeable_items = unique_unmergeable_items(unmergeable_items);
 
         let mergable_items: Vec<&PortList> = port_lists
             .iter()
             .filter(|port_list| port_list.is_mergable())
             .copied()
             .collect();
+        let merged_ranges = merge_and_count_items(mergable_items);
 
-        let unique_unmergeable_items = unique_unmergeable_items(unmergeable_items);
-
-        unique_unmergeable_items.len() as u64 + mergable_items.len() as u64
+        unique_unmergeable_items.len() as u64 + merged_ranges.len() as u64
     }
 }
 
@@ -115,6 +117,51 @@ fn unique_unmergeable_items(port_lists: Vec<&PortList>) -> Vec<&PortList> {
         .collect();
 
     unique_items
+}
+
+fn merge_and_count_items(port_lists: Vec<&PortList>) -> Vec<(u32, u32)> {
+    let port_ranges = port_lists
+        .iter()
+        .map(|item| {
+            let proto = item.get_protocol();
+            let (start, end) = item.get_ports();
+            (
+                ((proto as u32) << 16) + start as u32,
+                ((proto as u32) << 16) + end as u32,
+            )
+        })
+        .collect::<Vec<_>>();
+
+    merge_ranges(port_ranges)
+}
+
+/// Merge overlapping port ranges.
+/// The input is a list of tuples where each tuple represents a port range.
+/// The output is a list of tuples where each tuple represents a merged port range.
+/// Example:
+///  [(80, 80), (443, 443), (80, 81), (33434, 33434)]
+/// -> [(80, 81), (443, 443), (33434, 33434)]
+fn merge_ranges(port_ranges: Vec<(u32, u32)>) -> Vec<(u32, u32)> {
+    use std::cmp::max;
+    if port_ranges.is_empty() {
+        return vec![];
+    }
+
+    let mut port_ranges = port_ranges;
+    port_ranges.sort_unstable();
+    let mut merged_ranges = vec![];
+    let mut current_range = port_ranges[0];
+    for range in port_ranges.iter().skip(1) {
+        if range.0 <= current_range.1 + 1 {
+            current_range = (current_range.0, max(current_range.1, range.1));
+        } else {
+            merged_ranges.push(current_range);
+            current_range = *range;
+        }
+    }
+    merged_ranges.push(current_range);
+
+    merged_ranges
 }
 
 impl PortObjectItem {
@@ -222,7 +269,7 @@ mod tests {
     fn test_port_object_capacity_single_port_list() {
         let lines = vec!["Destination Ports     : TCP-8080 (protocol 6, port 8080)".to_string()];
         let port_object = PortObject::try_from(&lines).unwrap();
-        assert_eq!(port_object.capacity(), 1); // Single port
+        assert_eq!(port_object._capacity(), 1); // Single port
     }
 
     #[test]
@@ -234,7 +281,7 @@ mod tests {
             "TCP-8080 (protocol 6, port 8080)".to_string(),
         ];
         let port_object = PortObject::try_from(&lines).unwrap();
-        assert_eq!(port_object.capacity(), 3); // Three ports
+        assert_eq!(port_object._capacity(), 3); // Three ports
     }
 
     #[test]
@@ -244,14 +291,14 @@ mod tests {
             "  HTTP (protocol 6, port 80-81)".to_string(),
         ];
         let port_object = PortObject::try_from(&lines).unwrap();
-        assert_eq!(port_object.capacity(), 1); // Port range 80-81
+        assert_eq!(port_object._capacity(), 1); // Port range 80-81
     }
 
     #[test]
     fn test_port_object_capacity_empty() {
         let lines = vec!["Destination Ports     : HTTP-HTTPS_1 (group)".to_string()];
         let port_object = PortObject::try_from(&lines).unwrap();
-        assert_eq!(port_object.capacity(), 0); // No ports
+        assert_eq!(port_object._capacity(), 0); // No ports
     }
 
     #[test]
@@ -264,7 +311,7 @@ mod tests {
             "protocol 6, port 33434".to_string(),
         ];
         let port_object = PortObject::try_from(&lines).unwrap();
-        assert_eq!(port_object.capacity(), 4); // 1 port + 3 ports in range + 1 port + 1 port
+        assert_eq!(port_object._capacity(), 4); // 1 port + 3 ports in range + 1 port + 1 port
     }
 
     #[test]
@@ -314,7 +361,7 @@ mod tests {
     #[test]
     fn test_port_object_unique_unmergeable_items_duplicates_2() {
         let lines = vec![
-            "Destination Ports     : HTTP-HTTPS_2 (group)".to_string(),
+            "Destination Ports     : SomeProtocols (group)".to_string(),
             "  BGP (protocol 17)".to_string(),
             "  RIP (protocol 9)".to_string(),
             "LDP (protocol 39)".to_string(),
@@ -331,6 +378,43 @@ mod tests {
 
         let unmergeable_items = unique_unmergeable_items(port_lists);
         assert_eq!(unmergeable_items.len(), 5);
+    }
+
+    #[test]
+    fn test_port_object_unique_unmergeable_items_duplicates_3() {
+        let lines = vec![
+            "Destination Ports     : ICMP (group)".to_string(),
+            "  IVMP1 (protocol 1, type 4, code 11)".to_string(),
+            "IVMP1 (protocol 1, type 4, code 12)".to_string(),
+        ];
+        let port_object = PortObject::try_from(&lines).unwrap();
+        let port_lists: Vec<&PortList> = port_object
+            .items
+            .iter()
+            .flat_map(|item| item.collect_objects())
+            .collect();
+
+        let unmergeable_items = unique_unmergeable_items(port_lists);
+        assert_eq!(unmergeable_items.len(), 2);
+    }
+
+    #[test]
+    fn test_port_object_unique_unmergeable_items_duplicates_4() {
+        let lines = vec![
+            "Destination Ports     : ICMP (group)".to_string(),
+            "  IVMP1 (protocol 1, type 4, code 11)".to_string(),
+            "IVMP2 (protocol 1, type 4)".to_string(),
+            "IVMP3 (protocol 1, type 4, code 12)".to_string(),
+        ];
+        let port_object = PortObject::try_from(&lines).unwrap();
+        let port_lists: Vec<&PortList> = port_object
+            .items
+            .iter()
+            .flat_map(|item| item.collect_objects())
+            .collect();
+
+        let unmergeable_items = unique_unmergeable_items(port_lists);
+        assert_eq!(unmergeable_items.len(), 3);
     }
 
     #[test]
@@ -437,7 +521,7 @@ mod tests {
             "AH (protocol 51)".to_string(),
             "protocol 10".to_string(),
         ];
-        assert_eq!(PortObject::try_from(&lines).unwrap().capacity(), 6);
+        assert_eq!(PortObject::try_from(&lines).unwrap()._capacity(), 6);
     }
 
     #[test]
@@ -451,7 +535,7 @@ mod tests {
             "PIM (protocol 103)".to_string(),
             "protocol 6".to_string(),
         ];
-        assert_eq!(PortObject::try_from(&lines).unwrap().capacity(), 5);
+        assert_eq!(PortObject::try_from(&lines).unwrap()._capacity(), 5);
     }
 
     #[test]
@@ -465,7 +549,7 @@ mod tests {
             "PIM (protocol 103)".to_string(),
             "protocol 6".to_string(),
         ];
-        assert_eq!(PortObject::try_from(&lines).unwrap().capacity(), 5);
+        assert_eq!(PortObject::try_from(&lines).unwrap()._capacity(), 5);
     }
 
     #[test]
@@ -479,7 +563,7 @@ mod tests {
             "PIM (protocol 103)".to_string(),
             "protocol 6".to_string(),
         ];
-        assert_eq!(PortObject::try_from(&lines).unwrap().capacity(), 5);
+        assert_eq!(PortObject::try_from(&lines).unwrap()._capacity(), 5);
     }
 
     #[test]
@@ -494,7 +578,7 @@ mod tests {
             "PIM (protocol 103)".to_string(),
             "protocol 6".to_string(),
         ];
-        assert_eq!(PortObject::try_from(&lines).unwrap().capacity(), 5);
+        assert_eq!(PortObject::try_from(&lines).unwrap()._capacity(), 5);
     }
 
     #[test]
@@ -510,7 +594,7 @@ mod tests {
             "LdP (protocol 39)".to_string(),
             "protocol 6".to_string(),
         ];
-        assert_eq!(PortObject::try_from(&lines).unwrap().capacity(), 5);
+        assert_eq!(PortObject::try_from(&lines).unwrap()._capacity(), 5);
     }
 
     #[test]
@@ -526,7 +610,7 @@ mod tests {
             "protocol 39".to_string(),
             "protocol 6".to_string(),
         ];
-        assert_eq!(PortObject::try_from(&lines).unwrap().capacity(), 5);
+        assert_eq!(PortObject::try_from(&lines).unwrap()._capacity(), 5);
     }
 
     #[test]
@@ -538,7 +622,7 @@ mod tests {
             "EH (protocol 88)".to_string(),
             "protocol 6".to_string(),
         ];
-        assert_eq!(PortObject::try_from(&lines).unwrap().capacity(), 4);
+        assert_eq!(PortObject::try_from(&lines).unwrap()._capacity(), 4);
     }
 
     #[test]
@@ -550,6 +634,187 @@ mod tests {
             "  AH (protocol 51)".to_string(),
             "protocol 6".to_string(),
         ];
-        assert_eq!(PortObject::try_from(&lines).unwrap().capacity(), 4);
+        assert_eq!(PortObject::try_from(&lines).unwrap()._capacity(), 4);
+    }
+
+    #[test]
+    fn test_port_object_merge_ranges() {
+        let port_ranges = vec![(80, 80), (443, 443), (80, 81), (33434, 33434)];
+
+        let merged_ranges = merge_ranges(port_ranges);
+
+        assert_eq!(merged_ranges, vec![(80, 81), (443, 443), (33434, 33434)]);
+    }
+
+    #[test]
+    fn test_port_object_merge_ranges_2() {
+        let port_ranges = vec![(88, 89), (443, 443), (80, 90), (33434, 33434)];
+
+        let merged_ranges = merge_ranges(port_ranges);
+
+        assert_eq!(merged_ranges, vec![(80, 90), (443, 443), (33434, 33434)]);
+    }
+
+    #[test]
+    fn test_port_object_merge_ranges_3() {
+        let port_ranges = vec![(88, 88), (443, 443), (87, 87), (1, 2), (33434, 33434)];
+
+        let merged_ranges = merge_ranges(port_ranges);
+
+        assert_eq!(
+            merged_ranges,
+            vec![(1, 2), (87, 88), (443, 443), (33434, 33434)]
+        );
+    }
+
+    #[test]
+    fn test_port_object_merge_ranges_4() {
+        let port_ranges = vec![(80, 90), (443, 443), (85, 95), (1, 2), (33434, 33434)];
+
+        let merged_ranges = merge_ranges(port_ranges);
+
+        assert_eq!(
+            merged_ranges,
+            vec![(1, 2), (80, 95), (443, 443), (33434, 33434)]
+        );
+    }
+
+    #[test]
+    fn test_port_object_merge_ranges_5() {
+        let port_ranges = vec![
+            (80, 80),
+            (443, 443),
+            (81, 81),
+            (1, 2),
+            (82, 82),
+            (33434, 33434),
+        ];
+
+        let merged_ranges = merge_ranges(port_ranges);
+
+        assert_eq!(
+            merged_ranges,
+            vec![(1, 2), (80, 82), (443, 443), (33434, 33434)]
+        );
+    }
+
+    #[test]
+    fn test_port_object_merge_ranges_empty() {
+        let port_ranges = vec![];
+
+        let merged_ranges = merge_ranges(port_ranges);
+
+        assert_eq!(merged_ranges, vec![]);
+    }
+
+    #[test]
+    fn test_port_object_merge_ranges_single() {
+        let port_ranges = vec![(80, 80)];
+
+        let merged_ranges = merge_ranges(port_ranges);
+
+        assert_eq!(merged_ranges, vec![(80, 80)]);
+    }
+
+    #[test]
+    fn test_port_object_merge_ranges_single_2() {
+        let port_ranges = vec![(80, 80), (80, 80), (80, 80)];
+
+        let merged_ranges = merge_ranges(port_ranges);
+
+        assert_eq!(merged_ranges, vec![(80, 80)]);
+    }
+
+    #[test]
+    fn test_port_object_capacity_mergeable_items_duplicates_1() {
+        let lines = vec![
+            "Destination Ports     : MyGroup1 (group)".to_string(),
+            "  HTTP (protocol 6, port 80)".to_string(),
+            "  HTTP2 (protocol 6, port 82)".to_string(),
+        ];
+        assert_eq!(PortObject::try_from(&lines).unwrap()._capacity(), 2);
+    }
+
+    #[test]
+    fn test_port_object_capacity_mergeable_items_duplicates_2() {
+        let lines = vec![
+            "Destination Ports     : MyGroup1 (group)".to_string(),
+            "  HTTP (protocol 6, port 80-81)".to_string(),
+            "  HTTP2 (protocol 6, port 82-83)".to_string(),
+        ];
+        assert_eq!(PortObject::try_from(&lines).unwrap()._capacity(), 1);
+    }
+
+    #[test]
+    fn test_port_object_capacity_mergeable_items_duplicates_3() {
+        let lines = vec![
+            "Destination Ports     : MyGroup1 (group)".to_string(),
+            "  HTTP (protocol 6, port 80-81)".to_string(),
+            "HTTP2 (protocol 6, port 82-83)".to_string(),
+        ];
+        assert_eq!(PortObject::try_from(&lines).unwrap()._capacity(), 1);
+    }
+
+    #[test]
+    fn test_port_object_capacity_mergeable_items_duplicates_4() {
+        let lines = vec![
+            "Destination Ports     : MyGroup1 (group)".to_string(),
+            "  HTTP (protocol 6, port 80-81)".to_string(),
+            "HTTP2 (protocol 6, port 82-83)".to_string(),
+            "HTTP3 (protocol 6, port 84-87)".to_string(),
+        ];
+        assert_eq!(PortObject::try_from(&lines).unwrap()._capacity(), 1);
+    }
+
+    #[test]
+    fn test_port_object_capacity_mergeable_items_overlap_1() {
+        let lines = vec![
+            "Destination Ports     : MyGroup1 (group)".to_string(),
+            "  HTTP (protocol 6, port 85-90)".to_string(),
+            "SMTP (protocol 6, port 25)".to_string(),
+            "HTTP3 (protocol 6, port 80-87)".to_string(),
+        ];
+        assert_eq!(PortObject::try_from(&lines).unwrap()._capacity(), 2);
+    }
+
+    #[test]
+    fn test_port_object_capacity_mergeable_items_overlap_2() {
+        let lines = vec![
+            "Destination Ports     : MyGroup1 (group)".to_string(),
+            "  HTTP (protocol 6, port 81-82)".to_string(),
+            "SMTP (protocol 6, port 25)".to_string(),
+            "HTTP2 (protocol 6, port 82-82)".to_string(),
+            "POP3 (protocol 6, port 110)".to_string(),
+            "HTTP3 (protocol 6, port 80-80)".to_string(),
+        ];
+        assert_eq!(PortObject::try_from(&lines).unwrap()._capacity(), 3);
+    }
+
+    #[test]
+    fn test_port_object_capacity_mergeable_items_overlap_3() {
+        let lines = vec![
+            "Destination Ports     : MyGroup1 (group)".to_string(),
+            "  HTTP (protocol 6, port 81-82)".to_string(),
+            "SMTP (protocol 6, port 25)".to_string(),
+            "HTTP2 (protocol 6, port 82-82)".to_string(),
+            "POP3 (protocol 6, port 110)".to_string(),
+            "HTTP3 (protocol 6, port 80-80)".to_string(),
+            "HTTP4 (protocol 6, port 80-80)".to_string(),
+        ];
+        assert_eq!(PortObject::try_from(&lines).unwrap()._capacity(), 3);
+    }
+
+    #[test]
+    fn test_port_object_capacity_1() {
+        let lines = vec![
+            "Destination Ports     : MyGroup1 (group)".to_string(),
+            "  HTTP (protocol 6, port 80)".to_string(),
+            "  SNMP (protocol 17, port 161)".to_string(),
+            "SSH (protocol 6, port 22)".to_string(),
+            "HTTP2 (protocol 6, port 81-82)".to_string(),
+            "FTP (protocol 6, port 21)".to_string(),
+            "EIGRP (protocol 88)".to_string(),
+        ];
+        assert_eq!(PortObject::try_from(&lines).unwrap()._capacity(), 4);
     }
 }

@@ -90,6 +90,12 @@ impl PortList {
             PortList::Icmp(icmp) => icmp.get_protocol(),
         }
     }
+    pub fn get_ports(&self) -> (u16, u16) {
+        match self {
+            PortList::TcpUdp(tcp_udp) => tcp_udp.get_ports(),
+            _ => (0, 0),
+        }
+    }
 }
 
 #[cfg(test)]
