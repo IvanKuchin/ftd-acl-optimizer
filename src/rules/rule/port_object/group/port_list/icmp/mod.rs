@@ -76,7 +76,7 @@ impl FromStr for Icmp {
 }
 
 impl Icmp {
-    pub fn is_mergable(&self) -> bool {
+    pub fn is_l4(&self) -> bool {
         false
     }
 

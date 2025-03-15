@@ -131,10 +131,9 @@ impl TryFrom<Vec<String>> for Rule {
 
 impl Rule {
     pub fn capacity(&self) -> u64 {
-        self.source_networks.capacity()
-            * self.destination_networks.capacity()
-            * self.source_ports.as_ref().map_or(1, |p| p.capacity())
-            * self.destination_ports.as_ref().map_or(1, |p| p.capacity())
+        self.source_networks.capacity() * self.destination_networks.capacity()
+        // * self.source_ports.as_ref().map_or(1, |p| p.capacity())
+        // * self.destination_ports.as_ref().map_or(1, |p| p.capacity())
     }
 }
 
