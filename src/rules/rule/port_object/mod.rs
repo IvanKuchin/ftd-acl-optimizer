@@ -8,6 +8,9 @@ use group::Group;
 
 use super::network_object::utilities;
 
+mod port_object_optimized;
+use port_object_optimized::PortObjectOptimized;
+
 #[derive(Debug)]
 pub struct PortObject {
     name: String,
@@ -18,16 +21,6 @@ pub struct PortObject {
 pub enum PortObjectItem {
     PortList(PortList),
     Group(Group),
-}
-
-/// Vector of PortObjectItem returned after optimization  
-/// name - all opertations performed on items  
-/// items - the list of PortList objects  
-/// PortList objects are flattened from the Group objects and normal PortList objects
-#[derive(Debug)]
-pub struct PortObjectOptimized {
-    name: String,
-    items: Vec<PortList>,
 }
 
 #[derive(thiserror::Error, Debug)]
@@ -130,23 +123,6 @@ fn unique_l3_items(port_lists: Vec<&PortList>) -> Vec<&PortList> {
     unique_items
 }
 
-impl PortObjectOptimized {
-    pub fn new(port_list: &PortList) -> Self {
-        PortObjectOptimized {
-            name: port_list.get_name().to_string(),
-            items: vec![port_list.clone()],
-        }
-    }
-
-    pub fn append(&mut self, port_list: &PortList) {
-        self.items.push(port_list.clone());
-    }
-
-    pub fn set_name(&mut self, name: String) {
-        self.name = name;
-    }
-}
-
 fn optimize_l4_items(port_lists: Vec<&PortList>) -> Vec<PortObjectOptimized> {
     let mut port_lists = port_lists;
     port_lists.sort_by_key(|item| ((item.get_protocol() as u32) << 16) + item.get_ports().0 as u32);
@@ -157,7 +133,7 @@ fn optimize_l4_items(port_lists: Vec<&PortList>) -> Vec<PortObjectOptimized> {
         return optimized_port_lists;
     }
 
-    let mut optimized_port_list = PortObjectOptimized::new(&port_lists[0]);
+    let mut optimized_port_list = PortObjectOptimized::from(&port_lists[0]);
     let mut current_port_list = port_lists[0].clone();
 
     for next_port_list in port_lists.into_iter().skip(1) {
@@ -187,13 +163,13 @@ fn optimize_l4_items(port_lists: Vec<&PortList>) -> Vec<PortObjectOptimized> {
                 current_port_list = next_port_list.clone();
 
                 optimized_port_lists.push(optimized_port_list);
-                optimized_port_list = PortObjectOptimized::new(next_port_list);
+                optimized_port_list = PortObjectOptimized::from(next_port_list);
             }
         } else {
             current_port_list = next_port_list.clone();
 
             optimized_port_lists.push(optimized_port_list);
-            optimized_port_list = PortObjectOptimized::new(next_port_list);
+            optimized_port_list = PortObjectOptimized::from(next_port_list);
         }
     }
 
