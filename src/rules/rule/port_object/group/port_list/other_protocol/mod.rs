@@ -4,7 +4,7 @@ use std::str::FromStr;
 
 use super::tcp_udp::common;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct OtherProtocol {
     name: String,
     protocol: u8,
@@ -46,6 +46,9 @@ impl FromStr for OtherProtocol {
 }
 
 impl OtherProtocol {
+    pub fn get_name(&self) -> &str {
+        &self.name
+    }
     pub fn is_l4(&self) -> bool {
         false
     }

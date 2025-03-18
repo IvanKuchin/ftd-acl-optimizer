@@ -4,7 +4,7 @@ use std::str::FromStr;
 
 use super::common;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Icmp {
     name: String,
     protocol: u8,
@@ -76,6 +76,10 @@ impl FromStr for Icmp {
 }
 
 impl Icmp {
+    pub fn get_name(&self) -> &str {
+        &self.name
+    }
+
     pub fn is_l4(&self) -> bool {
         false
     }

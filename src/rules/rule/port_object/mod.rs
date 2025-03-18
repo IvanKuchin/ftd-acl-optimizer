@@ -1,8 +1,9 @@
+use std::cmp::max;
 use std::str::FromStr;
 
 mod group;
-use group::port_list;
 use group::port_list::PortList;
+use group::port_list::{self, tcp_udp};
 use group::Group;
 
 use super::network_object::utilities;
@@ -102,9 +103,9 @@ impl PortObject {
             .filter(|port_list| port_list.is_l4())
             .copied()
             .collect();
-        let merged_l4 = merge_l4_items(l4_items);
+        let optimized_l4 = optimize_l4_items(l4_items);
 
-        unique_l3_items.len() as u64 + merged_l4.len() as u64
+        unique_l3_items.len() as u64 + optimized_l4.len() as u64
     }
 }
 
@@ -119,49 +120,61 @@ fn unique_l3_items(port_lists: Vec<&PortList>) -> Vec<&PortList> {
     unique_items
 }
 
-fn merge_l4_items(port_lists: Vec<&PortList>) -> Vec<(u32, u32)> {
-    let port_ranges = port_lists
-        .iter()
-        .map(|item| {
-            let proto = item.get_protocol();
-            let (start, end) = item.get_ports();
-            (
-                ((proto as u32) << 16) + start as u32,
-                ((proto as u32) << 16) + end as u32,
-            )
-        })
-        .collect::<Vec<_>>();
+fn optimize_l4_items(port_lists: Vec<&PortList>) -> Vec<PortList> {
+    let mut port_lists = port_lists;
+    port_lists.sort_by_key(|item| ((item.get_protocol() as u32) << 16) + item.get_ports().0 as u32);
 
-    merge_ranges(port_ranges)
-}
+    let mut optimized_port_lists = vec![];
 
-/// Merge overlapping port ranges.
-/// The input is a list of tuples where each tuple represents a port range.
-/// The output is a list of tuples where each tuple represents a merged port range.
-/// Example:
-///  [(80, 80), (443, 443), (80, 81), (33434, 33434)]
-/// -> [(80, 81), (443, 443), (33434, 33434)]
-fn merge_ranges(port_ranges: Vec<(u32, u32)>) -> Vec<(u32, u32)> {
-    use std::cmp::max;
-    if port_ranges.is_empty() {
-        return vec![];
+    if port_lists.is_empty() {
+        return optimized_port_lists;
     }
 
-    let mut port_ranges = port_ranges;
-    port_ranges.sort_unstable();
-    let mut merged_ranges = vec![];
-    let mut current_range = port_ranges[0];
-    for next_range in port_ranges.iter().skip(1) {
-        if current_range.1 + 1 >= next_range.0 {
-            current_range = (current_range.0, max(current_range.1, next_range.1));
+    let mut current_port_list = port_lists[0].clone();
+
+    for next_port_list in port_lists.into_iter().skip(1) {
+        if current_port_list.get_protocol() == next_port_list.get_protocol() {
+            let (curr_start, curr_end) = current_port_list.get_ports();
+            let (next_start, next_end) = next_port_list.get_ports();
+
+            if next_start as u32 <= curr_end as u32 + 1 {
+                let verb = description_verb(curr_end, next_start, next_end);
+                let new_name = format!(
+                    "{} {verb} {}",
+                    current_port_list.get_name(),
+                    next_port_list.get_name()
+                );
+
+                let tcp_udp_obj = tcp_udp::Builder::new()
+                    .name(new_name)
+                    .protocol(current_port_list.get_protocol())
+                    .start(curr_start)
+                    .end(max(curr_end, next_end))
+                    .build();
+                current_port_list = port_list::PortList::TcpUdp(tcp_udp_obj);
+            } else {
+                optimized_port_lists.push(current_port_list);
+                current_port_list = next_port_list.clone();
+            }
         } else {
-            merged_ranges.push(current_range);
-            current_range = *next_range;
+            optimized_port_lists.push(current_port_list);
+            current_port_list = next_port_list.clone();
         }
     }
-    merged_ranges.push(current_range);
 
-    merged_ranges
+    optimized_port_lists.push(current_port_list);
+
+    optimized_port_lists
+}
+
+fn description_verb(curr_end: u16, next_start: u16, next_end: u16) -> String {
+    if curr_end as u32 + 1 == next_start as u32 {
+        "ADJOINS".to_string()
+    } else if next_end <= curr_end {
+        "SHADOWS".to_string()
+    } else {
+        "PARTIALLY OVERLAPS".to_string()
+    }
 }
 
 impl PortObjectItem {
@@ -657,108 +670,6 @@ mod tests {
     }
 
     #[test]
-    fn test_port_object_merge_ranges_1() {
-        let port_ranges = vec![(80, 80), (443, 443), (80, 81), (33434, 33434)];
-
-        let merged_ranges = merge_ranges(port_ranges);
-
-        assert_eq!(merged_ranges, vec![(80, 81), (443, 443), (33434, 33434)]);
-    }
-
-    #[test]
-    fn test_port_object_merge_ranges_2() {
-        let port_ranges = vec![(88, 89), (443, 443), (80, 90), (33434, 33434)];
-
-        let merged_ranges = merge_ranges(port_ranges);
-
-        assert_eq!(merged_ranges, vec![(80, 90), (443, 443), (33434, 33434)]);
-    }
-
-    #[test]
-    fn test_port_object_merge_ranges_3() {
-        let port_ranges = vec![(88, 88), (443, 443), (87, 87), (1, 2), (33434, 33434)];
-
-        let merged_ranges = merge_ranges(port_ranges);
-
-        assert_eq!(
-            merged_ranges,
-            vec![(1, 2), (87, 88), (443, 443), (33434, 33434)]
-        );
-    }
-
-    #[test]
-    fn test_port_object_merge_ranges_4() {
-        let port_ranges = vec![(80, 90), (443, 443), (85, 95), (1, 2), (33434, 33434)];
-
-        let merged_ranges = merge_ranges(port_ranges);
-
-        assert_eq!(
-            merged_ranges,
-            vec![(1, 2), (80, 95), (443, 443), (33434, 33434)]
-        );
-    }
-
-    #[test]
-    fn test_port_object_merge_ranges_5() {
-        let port_ranges = vec![
-            (80, 80),
-            (443, 443),
-            (81, 81),
-            (1, 2),
-            (82, 82),
-            (33434, 33434),
-        ];
-
-        let merged_ranges = merge_ranges(port_ranges);
-
-        assert_eq!(
-            merged_ranges,
-            vec![(1, 2), (80, 82), (443, 443), (33434, 33434)]
-        );
-    }
-
-    #[test]
-    fn test_port_object_merge_ranges_6() {
-        let port_ranges = vec![
-            (65533, 65533),
-            (65535, 65535),
-            (65534, 65535),
-            (65535, 65535),
-        ];
-
-        let merged_ranges = merge_ranges(port_ranges);
-
-        assert_eq!(merged_ranges, vec![(65533, 65535)]);
-    }
-
-    #[test]
-    fn test_port_object_merge_ranges_empty() {
-        let port_ranges = vec![];
-
-        let merged_ranges = merge_ranges(port_ranges);
-
-        assert_eq!(merged_ranges, vec![]);
-    }
-
-    #[test]
-    fn test_port_object_merge_ranges_single() {
-        let port_ranges = vec![(80, 80)];
-
-        let merged_ranges = merge_ranges(port_ranges);
-
-        assert_eq!(merged_ranges, vec![(80, 80)]);
-    }
-
-    #[test]
-    fn test_port_object_merge_ranges_single_2() {
-        let port_ranges = vec![(80, 80), (80, 80), (80, 80)];
-
-        let merged_ranges = merge_ranges(port_ranges);
-
-        assert_eq!(merged_ranges, vec![(80, 80)]);
-    }
-
-    #[test]
     fn test_port_object_capacity_l4_items_duplicates_1() {
         let lines = vec![
             "Destination Ports     : MyGroup1 (group)".to_string(),
@@ -849,5 +760,270 @@ mod tests {
             "EIGRP (protocol 88)".to_string(),
         ];
         assert_eq!(PortObject::try_from(&lines).unwrap()._capacity(), 4);
+    }
+
+    #[test]
+    fn test_optimize_l4_items_shadow_1() {
+        let lines = vec![
+            "Destination Ports     : MyGroup1 (group)".to_string(),
+            "  HTTP (protocol 6, port 80-82)".to_string(),
+            "HTTP2 (protocol 6, port 81-82)".to_string(),
+        ];
+        let port_object = PortObject::try_from(&lines).unwrap();
+        let port_lists: Vec<&PortList> = port_object
+            .items
+            .iter()
+            .flat_map(|item| item.collect_objects())
+            .collect();
+
+        let optimized = optimize_l4_items(port_lists);
+        assert_eq!(optimized.len(), 1);
+    }
+
+    #[test]
+    fn test_optimize_l4_items_shadow_2() {
+        let lines = vec![
+            "Destination Ports     : MyGroup1 (group)".to_string(),
+            "  HTTP (protocol 6, port 80-82)".to_string(),
+            "  UDP80-82 (protocol 17, port 80-82)".to_string(),
+            "HTTP2 (protocol 6, port 81-82)".to_string(),
+            "UDP81-82 (protocol 17, port 81-82)".to_string(),
+        ];
+        let port_object = PortObject::try_from(&lines).unwrap();
+        let port_lists: Vec<&PortList> = port_object
+            .items
+            .iter()
+            .flat_map(|item| item.collect_objects())
+            .collect();
+
+        let optimized = optimize_l4_items(port_lists);
+        assert_eq!(optimized.len(), 2);
+    }
+
+    #[test]
+    fn test_optimize_l4_items_shadow_3() {
+        let lines = vec![
+            "Destination Ports     : MyGroup1 (group)".to_string(),
+            "  HTTP2 (protocol 6, port 81-82)".to_string(),
+            "  UDP81-82 (protocol 17, port 81-82)".to_string(),
+            "TCP (protocol 6)".to_string(),
+            "UDP (protocol 17)".to_string(),
+        ];
+        let port_object = PortObject::try_from(&lines).unwrap();
+        let port_lists: Vec<&PortList> = port_object
+            .items
+            .iter()
+            .flat_map(|item| item.collect_objects())
+            .collect();
+
+        let optimized = optimize_l4_items(port_lists);
+        assert_eq!(optimized.len(), 2);
+    }
+
+    #[test]
+    fn test_optimize_l4_items_partial_overlap_1() {
+        let lines = vec![
+            "Destination Ports     : MyGroup1 (group)".to_string(),
+            "  HTTP (protocol 6, port 80-82)".to_string(),
+            "HTTP2 (protocol 6, port 81-85)".to_string(),
+        ];
+        let port_object = PortObject::try_from(&lines).unwrap();
+        let port_lists: Vec<&PortList> = port_object
+            .items
+            .iter()
+            .flat_map(|item| item.collect_objects())
+            .collect();
+
+        let optimized = optimize_l4_items(port_lists);
+        assert_eq!(optimized.len(), 1);
+    }
+
+    #[test]
+    fn test_optimize_l4_items_partial_overlap_2() {
+        let lines = vec![
+            "Destination Ports     : MyGroup1 (group)".to_string(),
+            "  HTTP (protocol 6, port 80-82)".to_string(),
+            "  UDP (protocol 17, port 80-82)".to_string(),
+            "HTTP2 (protocol 6, port 81-85)".to_string(),
+            "UDP2 (protocol 17, port 81-85)".to_string(),
+        ];
+        let port_object = PortObject::try_from(&lines).unwrap();
+        let port_lists: Vec<&PortList> = port_object
+            .items
+            .iter()
+            .flat_map(|item| item.collect_objects())
+            .collect();
+
+        let optimized = optimize_l4_items(port_lists);
+        assert_eq!(optimized.len(), 2);
+    }
+
+    #[test]
+    fn test_optimize_l4_items_merge() {
+        let lines = vec![
+            "Destination Ports     : MyGroup1 (group)".to_string(),
+            "  HTTP (protocol 6, port 80-82)".to_string(),
+            "HTTP2 (protocol 6, port 83-85)".to_string(),
+        ];
+        let port_object = PortObject::try_from(&lines).unwrap();
+        let port_lists: Vec<&PortList> = port_object
+            .items
+            .iter()
+            .flat_map(|item| item.collect_objects())
+            .collect();
+
+        let optimized = optimize_l4_items(port_lists);
+        assert_eq!(optimized.len(), 1);
+    }
+
+    #[test]
+    fn test_optimize_l4_items_merge_2() {
+        let lines = vec![
+            "Destination Ports     : MyGroup1 (group)".to_string(),
+            "  HTTP80 (protocol 6, port 80-80)".to_string(),
+            "HTTP82 (protocol 6, port 82-82)".to_string(),
+            "HTTP81 (protocol 6, port 81-81)".to_string(),
+        ];
+        let port_object = PortObject::try_from(&lines).unwrap();
+        let port_lists: Vec<&PortList> = port_object
+            .items
+            .iter()
+            .flat_map(|item| item.collect_objects())
+            .collect();
+
+        let optimized = optimize_l4_items(port_lists);
+        assert_eq!(optimized.len(), 1);
+    }
+
+    #[test]
+    fn test_optimize_l4_items_merge_3() {
+        let lines = vec![
+            "Destination Ports     : MyGroup1 (group)".to_string(),
+            "  HTTP80 (protocol 6,  port 80-80)".to_string(),
+            "  UDP80 (protocol 17, port 80-80)".to_string(),
+            "HTTP82 (protocol 6, port 82-82)".to_string(),
+            "UDP82 (protocol 17, port 82-82)".to_string(),
+            "HTTP81 (protocol 6, port 81-81)".to_string(),
+            "UDP81 (protocol 17, port 81-81)".to_string(),
+        ];
+        let port_object = PortObject::try_from(&lines).unwrap();
+        let port_lists: Vec<&PortList> = port_object
+            .items
+            .iter()
+            .flat_map(|item| item.collect_objects())
+            .collect();
+
+        let optimized = optimize_l4_items(port_lists);
+        assert_eq!(optimized.len(), 2);
+    }
+
+    #[test]
+    fn test_optimize_l4_items_empty() {
+        let lines = vec!["Destination Ports     : MyGroup1 (group)".to_string()];
+        let port_object = PortObject::try_from(&lines).unwrap();
+        let port_lists: Vec<&PortList> = port_object
+            .items
+            .iter()
+            .flat_map(|item| item.collect_objects())
+            .collect();
+
+        let optimized = optimize_l4_items(port_lists);
+        assert_eq!(optimized.len(), 0);
+    }
+
+    #[test]
+    fn test_optimize_l4_items_length_1() {
+        let lines = vec![
+            "Destination Ports     : MyGroup1 (group)".to_string(),
+            "  GRE (protocol 47)".to_string(),
+            "  HTTP (protocol 6, port 80-82)".to_string(),
+            "  UDP (protocol 17, port 80-82)".to_string(),
+            "HTTP2 (protocol 6, port 81-85)".to_string(),
+            "UDP2 (protocol 17, port 81-85)".to_string(),
+        ];
+        let port_object = PortObject::try_from(&lines).unwrap();
+        let port_lists: Vec<&PortList> = port_object
+            .items
+            .iter()
+            .flat_map(|item| item.collect_objects())
+            .collect();
+
+        let optimized = optimize_l4_items(port_lists);
+        assert_eq!(optimized.len(), 3);
+    }
+
+    #[test]
+    fn test_optimize_l4_items_length_2() {
+        let lines = vec![
+            "Destination Ports     : MyGroup1 (group)".to_string(),
+            "  GRE (protocol 47)".to_string(),
+            "  HTTP (protocol 6, port 80-82)".to_string(),
+            "  UDP (protocol 17, port 80-82)".to_string(),
+            "HTTP2 (protocol 6, port 81-85)".to_string(),
+            "AH (protocol 51)".to_string(),
+            "ESP (protocol 50)".to_string(),
+            "UDP2 (protocol 17, port 81-85)".to_string(),
+        ];
+        let port_object = PortObject::try_from(&lines).unwrap();
+        let port_lists: Vec<&PortList> = port_object
+            .items
+            .iter()
+            .flat_map(|item| item.collect_objects())
+            .collect();
+
+        let optimized = optimize_l4_items(port_lists);
+        assert_eq!(optimized.len(), 5);
+    }
+
+    #[test]
+    fn test_optimize_l4_items_length_3() {
+        let lines = vec![
+            "Destination Ports     : MyGroup1 (group)".to_string(),
+            "  GRE (protocol 47)".to_string(),
+            "  HTTP (protocol 6, port 80-81)".to_string(),
+            "  UDP (protocol 17, port 80-82)".to_string(),
+            "HTTP2 (protocol 6, port 81-85)".to_string(),
+            "AH (protocol 51)".to_string(),
+            "ESP (protocol 50)".to_string(),
+            "UDP2 (protocol 17, port 81-85)".to_string(),
+            "HTTP3 (protocol 6, port 81-82)".to_string(),
+            "UDP3 (protocol 17, port 86-87)".to_string(),
+        ];
+        let port_object = PortObject::try_from(&lines).unwrap();
+        let port_lists: Vec<&PortList> = port_object
+            .items
+            .iter()
+            .flat_map(|item| item.collect_objects())
+            .collect();
+
+        let optimized = optimize_l4_items(port_lists);
+        assert_eq!(optimized.len(), 5);
+    }
+
+    #[test]
+    fn test_optimize_l4_items_length_4() {
+        let lines = vec![
+            "Destination Ports     : MyGroup1 (group)".to_string(),
+            "  GRE (protocol 47)".to_string(),
+            "  HTTP (protocol 6, port 80-81)".to_string(),
+            "  UDP (protocol 17, port 80-82)".to_string(),
+            "HTTP2 (protocol 6, port 81-85)".to_string(),
+            "AH_1 (protocol 51)".to_string(),
+            "ESP (protocol 50)".to_string(),
+            "UDP2 (protocol 17, port 81-85)".to_string(),
+            "HTTP3 (protocol 6, port 81-82)".to_string(),
+            "AH_2 (protocol 51)".to_string(),
+            "UDP3 (protocol 17, port 86-87)".to_string(),
+        ];
+        let port_object = PortObject::try_from(&lines).unwrap();
+        let port_lists: Vec<&PortList> = port_object
+            .items
+            .iter()
+            .flat_map(|item| item.collect_objects())
+            .collect();
+
+        let optimized = optimize_l4_items(port_lists);
+        dbg!(&optimized);
+        assert_eq!(optimized.len(), 7);
     }
 }

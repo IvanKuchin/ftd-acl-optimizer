@@ -4,12 +4,19 @@ use std::str::FromStr;
 
 pub mod common;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct TcpUdp {
     name: String,
     protocol: u8,
     start: u16,
     end: u16,
+}
+
+pub struct Builder {
+    name: Option<String>,
+    protocol: Option<u8>,
+    start: Option<u16>,
+    end: Option<u16>,
 }
 
 #[derive(thiserror::Error, Debug)]
@@ -105,11 +112,54 @@ impl TcpUdp {
         true
     }
 
+    pub fn get_name(&self) -> &str {
+        self.name.as_str()
+    }
     pub fn get_protocol(&self) -> u8 {
         self.protocol
     }
     pub fn get_ports(&self) -> (u16, u16) {
         (self.start, self.end)
+    }
+}
+
+impl Builder {
+    pub fn new() -> Self {
+        Self {
+            name: None,
+            protocol: None,
+            start: None,
+            end: None,
+        }
+    }
+
+    pub fn name(mut self, name: String) -> Self {
+        self.name = Some(name);
+        self
+    }
+
+    pub fn protocol(mut self, protocol: u8) -> Self {
+        self.protocol = Some(protocol);
+        self
+    }
+
+    pub fn start(mut self, start: u16) -> Self {
+        self.start = Some(start);
+        self
+    }
+
+    pub fn end(mut self, end: u16) -> Self {
+        self.end = Some(end);
+        self
+    }
+
+    pub fn build(self) -> TcpUdp {
+        TcpUdp {
+            name: self.name.unwrap_or("TCP".to_string()),
+            protocol: self.protocol.unwrap_or(6),
+            start: self.start.unwrap_or(0),
+            end: self.end.unwrap_or(65535),
+        }
     }
 }
 

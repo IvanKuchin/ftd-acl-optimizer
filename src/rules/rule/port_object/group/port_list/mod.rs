@@ -7,7 +7,7 @@ mod icmp;
 mod other_protocol;
 pub mod tcp_udp;
 
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, PartialEq, Eq, Hash, Clone)]
 pub enum PortList {
     Icmp(icmp::Icmp),
     TcpUdp(tcp_udp::TcpUdp),
@@ -81,6 +81,13 @@ impl PortList {
             PortList::TcpUdp(tcp_udp) => tcp_udp.is_l4(),
             PortList::OtherProtocol(other_protocol) => other_protocol.is_l4(),
             PortList::Icmp(icmp) => icmp.is_l4(),
+        }
+    }
+    pub fn get_name(&self) -> &str {
+        match self {
+            PortList::TcpUdp(tcp_udp) => tcp_udp.get_name(),
+            PortList::OtherProtocol(other_protocol) => other_protocol.get_name(),
+            PortList::Icmp(icmp) => icmp.get_name(),
         }
     }
     pub fn get_protocol(&self) -> u8 {
