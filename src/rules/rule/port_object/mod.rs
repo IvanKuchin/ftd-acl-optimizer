@@ -23,6 +23,17 @@ pub enum PortObjectItem {
     Group(Group),
 }
 
+impl PortObjectItem {
+    pub fn collect_objects(&self) -> Vec<&PortList> {
+        let port_lists: Vec<&PortList> = match self {
+            PortObjectItem::PortList(port_list) => vec![port_list],
+            PortObjectItem::Group(group) => group.port_lists.iter().collect(),
+        };
+
+        port_lists
+    }
+}
+
 #[derive(thiserror::Error, Debug)]
 pub enum PortObjectError {
     #[error("Failed to parse port object: {0}")]
@@ -185,17 +196,6 @@ fn description_verb(curr_end: u16, next_start: u16, next_end: u16) -> String {
         "SHADOWS".to_string()
     } else {
         "PARTIALLY OVERLAPS".to_string()
-    }
-}
-
-impl PortObjectItem {
-    pub fn collect_objects(&self) -> Vec<&PortList> {
-        let port_lists: Vec<&PortList> = match self {
-            PortObjectItem::PortList(port_list) => vec![port_list],
-            PortObjectItem::Group(group) => group.port_lists.iter().collect(),
-        };
-
-        port_lists
     }
 }
 

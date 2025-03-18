@@ -1,7 +1,7 @@
 use super::group::port_list::PortList;
 
 /// Vector of PortObjectItem returned after optimization  
-/// name - all opertations performed on items  
+/// name - description of all operations performed on items  
 /// items - the list of PortList objects  
 /// PortList objects are flattened from the Group objects and normal PortList objects
 #[derive(Debug)]
