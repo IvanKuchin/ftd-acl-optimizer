@@ -24,6 +24,7 @@ pub enum PortObjectItem {
 }
 
 impl PortObjectItem {
+    /// Builds a flattened list of PortList objects from Groups and PortLists
     pub fn collect_objects(&self) -> Vec<&PortList> {
         let port_lists: Vec<&PortList> = match self {
             PortObjectItem::PortList(port_list) => vec![port_list],
