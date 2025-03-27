@@ -96,34 +96,6 @@ fn get_object(lines: &[String]) -> Result<(PortObjectItem, usize), PortObjectErr
     }
 }
 
-impl PortObject {
-    // used strictly for testing
-    // capacity calculation does not work on a port object level, it should be done on a rule level
-    fn _capacity(&self) -> u64 {
-        let port_lists: Vec<&PortList> = self
-            .items
-            .iter()
-            .flat_map(|item| item.collect_objects())
-            .collect();
-
-        let l3_items: Vec<&PortList> = port_lists
-            .iter()
-            .filter(|port_list| !port_list.is_l4())
-            .copied()
-            .collect();
-        let unique_l3_items = unique_l3_items(l3_items);
-
-        let l4_items: Vec<&PortList> = port_lists
-            .iter()
-            .filter(|port_list| port_list.is_l4())
-            .copied()
-            .collect();
-        let optimized_l4 = optimize_l4_items(l4_items);
-
-        unique_l3_items.len() as u64 + optimized_l4.len() as u64
-    }
-}
-
 fn unique_l3_items(port_lists: Vec<&PortList>) -> Vec<&PortList> {
     let unique_items = port_lists
         .iter()
@@ -169,7 +141,7 @@ fn optimize_l4_items(port_lists: Vec<&PortList>) -> Vec<PortObjectOptimized> {
                     .build();
                 current_port_list = port_list::PortList::TcpUdp(tcp_udp_obj);
 
-                optimized_port_list.append(&next_port_list);
+                optimized_port_list.append(next_port_list);
                 optimized_port_list.set_name(new_name);
             } else {
                 current_port_list = next_port_list.clone();
@@ -203,6 +175,34 @@ fn description_verb(curr_end: u16, next_start: u16, next_end: u16) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    impl PortObject {
+        // capacity calculation does not work on a port object level, it should be done on a rule level
+        // due to capacity calculation must be done on a same L3 protocol. For example: source TCP with destination TCP
+        fn capacity(&self) -> u64 {
+            let port_lists: Vec<&PortList> = self
+                .items
+                .iter()
+                .flat_map(|item| item.collect_objects())
+                .collect();
+
+            let l3_items: Vec<&PortList> = port_lists
+                .iter()
+                .filter(|port_list| !port_list.is_l4())
+                .copied()
+                .collect();
+            let unique_l3_items = unique_l3_items(l3_items);
+
+            let l4_items: Vec<&PortList> = port_lists
+                .iter()
+                .filter(|port_list| port_list.is_l4())
+                .copied()
+                .collect();
+            let optimized_l4 = optimize_l4_items(l4_items);
+
+            unique_l3_items.len() as u64 + optimized_l4.len() as u64
+        }
+    }
 
     #[test]
     fn test_empty_input() {
@@ -294,7 +294,7 @@ mod tests {
     fn test_port_object_capacity_single_port_list() {
         let lines = vec!["Destination Ports     : TCP-8080 (protocol 6, port 8080)".to_string()];
         let port_object = PortObject::try_from(&lines).unwrap();
-        assert_eq!(port_object._capacity(), 1); // Single port
+        assert_eq!(port_object.capacity(), 1); // Single port
     }
 
     #[test]
@@ -306,7 +306,7 @@ mod tests {
             "TCP-8080 (protocol 6, port 8080)".to_string(),
         ];
         let port_object = PortObject::try_from(&lines).unwrap();
-        assert_eq!(port_object._capacity(), 3); // Three ports
+        assert_eq!(port_object.capacity(), 3); // Three ports
     }
 
     #[test]
@@ -316,14 +316,14 @@ mod tests {
             "  HTTP (protocol 6, port 80-81)".to_string(),
         ];
         let port_object = PortObject::try_from(&lines).unwrap();
-        assert_eq!(port_object._capacity(), 1); // Port range 80-81
+        assert_eq!(port_object.capacity(), 1); // Port range 80-81
     }
 
     #[test]
     fn test_port_object_capacity_empty() {
         let lines = vec!["Destination Ports     : HTTP-HTTPS_1 (group)".to_string()];
         let port_object = PortObject::try_from(&lines).unwrap();
-        assert_eq!(port_object._capacity(), 0); // No ports
+        assert_eq!(port_object.capacity(), 0); // No ports
     }
 
     #[test]
@@ -336,7 +336,7 @@ mod tests {
             "protocol 6, port 33434".to_string(),
         ];
         let port_object = PortObject::try_from(&lines).unwrap();
-        assert_eq!(port_object._capacity(), 4); // 1 port + 3 ports in range + 1 port + 1 port
+        assert_eq!(port_object.capacity(), 4); // 1 port + 3 ports in range + 1 port + 1 port
     }
 
     #[test]
@@ -565,7 +565,7 @@ mod tests {
             "AH (protocol 51)".to_string(),
             "protocol 10".to_string(),
         ];
-        assert_eq!(PortObject::try_from(&lines).unwrap()._capacity(), 6);
+        assert_eq!(PortObject::try_from(&lines).unwrap().capacity(), 6);
     }
 
     #[test]
@@ -579,7 +579,7 @@ mod tests {
             "PIM (protocol 103)".to_string(),
             "protocol 6".to_string(),
         ];
-        assert_eq!(PortObject::try_from(&lines).unwrap()._capacity(), 5);
+        assert_eq!(PortObject::try_from(&lines).unwrap().capacity(), 5);
     }
 
     #[test]
@@ -593,7 +593,7 @@ mod tests {
             "PIM (protocol 103)".to_string(),
             "protocol 6".to_string(),
         ];
-        assert_eq!(PortObject::try_from(&lines).unwrap()._capacity(), 5);
+        assert_eq!(PortObject::try_from(&lines).unwrap().capacity(), 5);
     }
 
     #[test]
@@ -607,7 +607,7 @@ mod tests {
             "PIM (protocol 103)".to_string(),
             "protocol 6".to_string(),
         ];
-        assert_eq!(PortObject::try_from(&lines).unwrap()._capacity(), 5);
+        assert_eq!(PortObject::try_from(&lines).unwrap().capacity(), 5);
     }
 
     #[test]
@@ -622,7 +622,7 @@ mod tests {
             "PIM (protocol 103)".to_string(),
             "protocol 6".to_string(),
         ];
-        assert_eq!(PortObject::try_from(&lines).unwrap()._capacity(), 5);
+        assert_eq!(PortObject::try_from(&lines).unwrap().capacity(), 5);
     }
 
     #[test]
@@ -638,7 +638,7 @@ mod tests {
             "LdP (protocol 39)".to_string(),
             "protocol 6".to_string(),
         ];
-        assert_eq!(PortObject::try_from(&lines).unwrap()._capacity(), 5);
+        assert_eq!(PortObject::try_from(&lines).unwrap().capacity(), 5);
     }
 
     #[test]
@@ -654,7 +654,7 @@ mod tests {
             "protocol 39".to_string(),
             "protocol 6".to_string(),
         ];
-        assert_eq!(PortObject::try_from(&lines).unwrap()._capacity(), 5);
+        assert_eq!(PortObject::try_from(&lines).unwrap().capacity(), 5);
     }
 
     #[test]
@@ -666,7 +666,7 @@ mod tests {
             "EH (protocol 88)".to_string(),
             "protocol 6".to_string(),
         ];
-        assert_eq!(PortObject::try_from(&lines).unwrap()._capacity(), 4);
+        assert_eq!(PortObject::try_from(&lines).unwrap().capacity(), 4);
     }
 
     #[test]
@@ -678,7 +678,7 @@ mod tests {
             "  AH (protocol 51)".to_string(),
             "protocol 6".to_string(),
         ];
-        assert_eq!(PortObject::try_from(&lines).unwrap()._capacity(), 4);
+        assert_eq!(PortObject::try_from(&lines).unwrap().capacity(), 4);
     }
 
     #[test]
@@ -688,7 +688,7 @@ mod tests {
             "  HTTP (protocol 6, port 80)".to_string(),
             "  HTTP2 (protocol 6, port 82)".to_string(),
         ];
-        assert_eq!(PortObject::try_from(&lines).unwrap()._capacity(), 2);
+        assert_eq!(PortObject::try_from(&lines).unwrap().capacity(), 2);
     }
 
     #[test]
@@ -698,7 +698,7 @@ mod tests {
             "  HTTP (protocol 6, port 80-81)".to_string(),
             "  HTTP2 (protocol 6, port 82-83)".to_string(),
         ];
-        assert_eq!(PortObject::try_from(&lines).unwrap()._capacity(), 1);
+        assert_eq!(PortObject::try_from(&lines).unwrap().capacity(), 1);
     }
 
     #[test]
@@ -708,7 +708,7 @@ mod tests {
             "  HTTP (protocol 6, port 80-81)".to_string(),
             "HTTP2 (protocol 6, port 82-83)".to_string(),
         ];
-        assert_eq!(PortObject::try_from(&lines).unwrap()._capacity(), 1);
+        assert_eq!(PortObject::try_from(&lines).unwrap().capacity(), 1);
     }
 
     #[test]
@@ -719,7 +719,7 @@ mod tests {
             "HTTP2 (protocol 6, port 82-83)".to_string(),
             "HTTP3 (protocol 6, port 84-87)".to_string(),
         ];
-        assert_eq!(PortObject::try_from(&lines).unwrap()._capacity(), 1);
+        assert_eq!(PortObject::try_from(&lines).unwrap().capacity(), 1);
     }
 
     #[test]
@@ -730,7 +730,7 @@ mod tests {
             "SMTP (protocol 6, port 25)".to_string(),
             "HTTP3 (protocol 6, port 80-87)".to_string(),
         ];
-        assert_eq!(PortObject::try_from(&lines).unwrap()._capacity(), 2);
+        assert_eq!(PortObject::try_from(&lines).unwrap().capacity(), 2);
     }
 
     #[test]
@@ -743,7 +743,7 @@ mod tests {
             "POP3 (protocol 6, port 110)".to_string(),
             "HTTP3 (protocol 6, port 80-80)".to_string(),
         ];
-        assert_eq!(PortObject::try_from(&lines).unwrap()._capacity(), 3);
+        assert_eq!(PortObject::try_from(&lines).unwrap().capacity(), 3);
     }
 
     #[test]
@@ -757,7 +757,7 @@ mod tests {
             "HTTP3 (protocol 6, port 80-80)".to_string(),
             "HTTP4 (protocol 6, port 80-80)".to_string(),
         ];
-        assert_eq!(PortObject::try_from(&lines).unwrap()._capacity(), 3);
+        assert_eq!(PortObject::try_from(&lines).unwrap().capacity(), 3);
     }
 
     #[test]
@@ -771,7 +771,7 @@ mod tests {
             "FTP (protocol 6, port 21)".to_string(),
             "EIGRP (protocol 88)".to_string(),
         ];
-        assert_eq!(PortObject::try_from(&lines).unwrap()._capacity(), 4);
+        assert_eq!(PortObject::try_from(&lines).unwrap().capacity(), 4);
     }
 
     #[test]
