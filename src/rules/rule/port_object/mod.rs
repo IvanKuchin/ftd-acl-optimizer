@@ -11,28 +11,13 @@ use super::network_object::utilities;
 mod port_object_optimized;
 use port_object_optimized::PortObjectOptimized;
 
+mod port_object_item;
+use port_object_item::PortObjectItem;
+
 #[derive(Debug)]
 pub struct PortObject {
     name: String,
     items: Vec<PortObjectItem>,
-}
-
-#[derive(Debug)]
-pub enum PortObjectItem {
-    PortList(PortList),
-    Group(Group),
-}
-
-impl PortObjectItem {
-    /// Builds a flattened list of PortList objects from Groups and PortLists
-    pub fn collect_objects(&self) -> Vec<&PortList> {
-        let port_lists: Vec<&PortList> = match self {
-            PortObjectItem::PortList(port_list) => vec![port_list],
-            PortObjectItem::Group(group) => group.port_lists.iter().collect(),
-        };
-
-        port_lists
-    }
 }
 
 #[derive(thiserror::Error, Debug)]
@@ -74,6 +59,42 @@ impl TryFrom<&Vec<String>> for PortObject {
         }
 
         Ok(PortObject { name, items })
+    }
+}
+
+impl PortObject {
+    /// Optimizes all PortLists inside the PortObject.
+    /// Those optimizations automatically performed by FTD
+    fn optimize(&self) -> Vec<PortObjectOptimized> {
+        let port_lists: Vec<&PortList> = self
+            .items
+            .iter()
+            .flat_map(|item| item.collect_objects())
+            .collect();
+
+        let l3_items: Vec<&PortList> = port_lists
+            .iter()
+            .filter(|port_list| !port_list.is_l4())
+            .copied()
+            .collect();
+        let unique_l3_items = unique_l3_items(l3_items);
+
+        let unique_l3_items: Vec<PortObjectOptimized> = unique_l3_items
+            .iter()
+            .map(|port_list| PortObjectOptimized::from(port_list))
+            .collect();
+
+        let l4_items: Vec<&PortList> = port_lists
+            .iter()
+            .filter(|port_list| port_list.is_l4())
+            .copied()
+            .collect();
+        let optimized_l4 = optimize_l4_items(l4_items);
+
+        unique_l3_items
+            .into_iter()
+            .chain(optimized_l4)
+            .collect::<Vec<_>>()
     }
 }
 
@@ -180,27 +201,7 @@ mod tests {
         // capacity calculation does not work on a port object level, it should be done on a rule level
         // due to capacity calculation must be done on a same L3 protocol. For example: source TCP with destination TCP
         fn capacity(&self) -> u64 {
-            let port_lists: Vec<&PortList> = self
-                .items
-                .iter()
-                .flat_map(|item| item.collect_objects())
-                .collect();
-
-            let l3_items: Vec<&PortList> = port_lists
-                .iter()
-                .filter(|port_list| !port_list.is_l4())
-                .copied()
-                .collect();
-            let unique_l3_items = unique_l3_items(l3_items);
-
-            let l4_items: Vec<&PortList> = port_lists
-                .iter()
-                .filter(|port_list| port_list.is_l4())
-                .copied()
-                .collect();
-            let optimized_l4 = optimize_l4_items(l4_items);
-
-            unique_l3_items.len() as u64 + optimized_l4.len() as u64
+            self.optimize().len() as u64
         }
     }
 

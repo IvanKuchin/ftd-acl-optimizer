@@ -50,12 +50,6 @@ impl TryFrom<&Vec<String>> for Group {
     }
 }
 
-impl Group {
-    pub fn capacity(&self) -> u64 {
-        todo!("Implement Group::capacity");
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use crate::rules::rule::port_object::group::port_list::PortListError;
@@ -130,54 +124,5 @@ mod tests {
         } else {
             panic!("Expected GroupError::General");
         }
-    }
-
-    #[test]
-    fn test_group_capacity_single_port_list() {
-        let lines = vec![
-            "HTTP-HTTPS_1 (group)".to_string(),
-            "  HTTP (protocol 6, port 80)".to_string(),
-        ];
-        let group = Group::try_from(&lines).unwrap();
-        assert_eq!(group.capacity(), 1); // Single port
-    }
-
-    #[test]
-    fn test_group_capacity_multiple_port_lists() {
-        let lines = vec![
-            "HTTP-HTTPS_1 (group)".to_string(),
-            "  HTTP (protocol 6, port 80)".to_string(),
-            "  HTTPS (protocol 6, port 443)".to_string(),
-        ];
-        let group = Group::try_from(&lines).unwrap();
-        assert_eq!(group.capacity(), 2); // Two ports
-    }
-
-    #[test]
-    fn test_group_capacity_port_range() {
-        let lines = vec![
-            "HTTP-HTTPS_1 (group)".to_string(),
-            "  HTTP (protocol 6, port 80-81)".to_string(),
-        ];
-        let group = Group::try_from(&lines).unwrap();
-        assert_eq!(group.capacity(), 1); // Port range 80-81
-    }
-
-    #[test]
-    fn test_group_capacity_empty_group() {
-        let lines = vec!["HTTP-HTTPS_1 (group)".to_string()];
-        let group = Group::try_from(&lines).unwrap();
-        assert_eq!(group.capacity(), 0); // No ports
-    }
-
-    #[test]
-    fn test_group_capacity_mixed_ports_and_ranges() {
-        let lines = vec![
-            "HTTP-HTTPS_1 (group)".to_string(),
-            "  HTTP (protocol 6, port 80)".to_string(),
-            "  HTTPS (protocol 6, port 443-445)".to_string(),
-        ];
-        let group = Group::try_from(&lines).unwrap();
-        assert_eq!(group.capacity(), 2); // 1 port + 3 ports in range
     }
 }
