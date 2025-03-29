@@ -409,6 +409,28 @@ mod tests {
     #[test]
     fn test_port_object_unique_l3_items_duplicates_3() {
         let lines = vec![
+            "Destination Ports     : SomeProtocols (group)".to_string(),
+            "  BGP (protocol 17)".to_string(),
+            "  RIP (protocol 9)".to_string(),
+            "LDP (protocol 39)".to_string(),
+            "protocol 39".to_string(),
+            "PIM (protocol 103)".to_string(),
+            "protocol 6".to_string(),
+        ];
+        let port_object = PortObject::try_from(&lines).unwrap();
+        let port_lists: Vec<&PortList> = port_object
+            .items
+            .iter()
+            .flat_map(|item| item.collect_objects())
+            .collect();
+
+        let l3_items = unique_l3_items(port_lists);
+        assert_eq!(l3_items.len(), 5);
+    }
+
+    #[test]
+    fn test_port_object_unique_l3_items_duplicates_4() {
+        let lines = vec![
             "Destination Ports     : ICMP (group)".to_string(),
             "  ICMP1 (protocol 1, type 4, code 11)".to_string(),
             "ICMP1 (protocol 1, type 4, code 12)".to_string(),
@@ -425,7 +447,7 @@ mod tests {
     }
 
     #[test]
-    fn test_port_object_unique_l3_items_duplicates_4() {
+    fn test_port_object_unique_l3_items_duplicates_5() {
         let lines = vec![
             "Destination Ports     : ICMP (group)".to_string(),
             "  ICMP1 (protocol 1, type 4, code 11)".to_string(),
@@ -444,7 +466,7 @@ mod tests {
     }
 
     #[test]
-    fn test_port_object_unique_l3_items_duplicates_5() {
+    fn test_port_object_unique_l3_items_duplicates_6() {
         let lines = vec![
             "Destination Ports     : ICMP (group)".to_string(),
             "  ICMP1 (protocol 1, type 4, code 11)".to_string(),
