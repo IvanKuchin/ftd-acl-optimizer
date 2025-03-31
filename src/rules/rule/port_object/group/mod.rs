@@ -52,8 +52,6 @@ impl TryFrom<&Vec<String>> for Group {
 
 #[cfg(test)]
 mod tests {
-    use crate::rules::rule::port_object::group::port_list::PortListError;
-
     use super::*;
 
     #[test]

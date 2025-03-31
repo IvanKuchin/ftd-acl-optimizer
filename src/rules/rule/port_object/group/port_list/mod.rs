@@ -54,7 +54,7 @@ impl FromStr for PortList {
     // IGMP (protocol 2)
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let (name, ports) = common::parse_name_and_protocol(s)?;
+        let (_name, ports) = common::parse_name_and_protocol(s)?;
 
         let protocol = common::parse_protocol(ports)?;
 

@@ -138,7 +138,7 @@ fn optimize_l4_items(port_lists: Vec<&PortList>) -> Vec<PortObjectOptimized> {
         return optimized_port_lists;
     }
 
-    let mut optimized_port_list = PortObjectOptimized::from(&port_lists[0]);
+    let mut optimized_port_list = PortObjectOptimized::from(port_lists[0]);
     let mut current_port_list = port_lists[0].clone();
 
     for next_port_list in port_lists.into_iter().skip(1) {

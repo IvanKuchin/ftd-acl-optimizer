@@ -137,19 +137,42 @@ impl Rule {
     pub fn capacity(&self) -> u64 {
         let src_protocols = self.source_ports.as_ref().map(|p| p.optimize());
         let dst_protocols = self.destination_ports.as_ref().map(|p| p.optimize());
-        let protocol_factor = get_protocol_factor(src_protocols, dst_protocols);
+        let protocol_factor = get_protocol_factor(&src_protocols, &dst_protocols);
+
         self.source_networks.capacity() * self.destination_networks.capacity() * protocol_factor
     }
 }
 
+/// Calculate the protocol factor based on the src and dst protocols
+/// For example:  
+/// src_protocols = [TCP, UDP, TCP] -> (TCP, 2 times), (UDP, 1 time)  
+/// dst_protocols = [TCP, UDP, UDP] -> (TCP, 1 time),  (UDP, 2 times)  
+/// protocol_factor =  TCP (2 * 1) + UDP (1 * 2) = 2 + 2 = 4
 fn get_protocol_factor(
-    src_ports: Option<Vec<PortObjectOptimized>>,
-    dst_ports: Option<Vec<PortObjectOptimized>>,
+    src_ports: &Option<Vec<PortObjectOptimized>>,
+    dst_ports: &Option<Vec<PortObjectOptimized>>,
 ) -> u64 {
-    let src_protocols = src_ports.map_or(HashMap::new(), |p| protocol_freq_distribution(&p));
-    // let dst_factor = dst_ports.map_or(1, |p| p.protocol_factor());
+    let src_protocols = src_ports
+        .as_ref()
+        .map_or(HashMap::new(), |p| protocol_freq_distribution(p));
+    let dst_protocols = dst_ports
+        .as_ref()
+        .map_or(HashMap::new(), |p| protocol_freq_distribution(p));
 
-    1
+    if src_protocols.is_empty() && dst_protocols.is_empty() {
+        return 1;
+    }
+
+    let (longest, shortest) = if src_protocols.len() > dst_protocols.len() {
+        (src_protocols, dst_protocols)
+    } else {
+        (dst_protocols, src_protocols)
+    };
+
+    longest.iter().fold(0, |acc, (protocol, count1)| {
+        let count2 = shortest.get(protocol).unwrap_or(&1);
+        acc + (*count1 * *count2)
+    })
 }
 
 fn protocol_freq_distribution(l3_l4_proto: &[PortObjectOptimized]) -> HashMap<u8, u64> {
@@ -485,8 +508,6 @@ mod tests {
         .unwrap()
         .optimize();
 
-        dbg!(&l3_l4_proto);
-
         let result = protocol_freq_distribution(&l3_l4_proto);
         assert_eq!(result.get(&6), Some(&2));
         assert_eq!(result.get(&17), Some(&1));
@@ -497,5 +518,133 @@ mod tests {
         let protocols: Vec<PortObjectOptimized> = vec![];
         let result = protocol_freq_distribution(&protocols);
         assert!(result.is_empty());
+    }
+
+    #[test]
+    fn test_get_protocol_factor_empty() {
+        let result = get_protocol_factor(&None, &None);
+        assert_eq!(result, 1);
+    }
+
+    #[test]
+    fn test_get_protocol_factor_half_empty_1() {
+        let l3_l4_proto = PortObject::try_from(&vec![
+            "Source Ports       : ephemeral (protocol 6, port 1024-1025)".to_string(),
+            "HTTP (protocol 6, port 80)".to_string(),
+            "HTTP over UDP (protocol 17, port 80)".to_string(),
+        ])
+        .unwrap()
+        .optimize();
+
+        let result = get_protocol_factor(&Some(l3_l4_proto), &None);
+        assert_eq!(result, 2 + 1);
+    }
+
+    #[test]
+    fn test_get_protocol_factor_half_empty_2() {
+        let l3_l4_proto = PortObject::try_from(&vec![
+            "Source Ports       : ephemeral (protocol 6, port 1024-1025)".to_string(),
+            "HTTP (protocol 6, port 80)".to_string(),
+            "HTTP over UDP (protocol 17, port 80)".to_string(),
+        ])
+        .unwrap()
+        .optimize();
+
+        let result = get_protocol_factor(&None, &Some(l3_l4_proto));
+        assert_eq!(result, 2 + 1);
+    }
+
+    #[test]
+    fn test_get_protocol_factor_1() {
+        let src_proto = PortObject::try_from(&vec![
+            "Source Ports       : ephemeral (protocol 6, port 1024-1025)".to_string(),
+            "HTTP (protocol 6, port 80)".to_string(),
+            "HTTP over UDP (protocol 17, port 80)".to_string(),
+        ])
+        .unwrap()
+        .optimize();
+
+        let dst_proto = PortObject::try_from(&vec![
+            "Source Ports       : ephemeral (protocol 6, port 1024-1025)".to_string(),
+            "HTTP (protocol 6, port 80)".to_string(),
+            "HTTP over UDP (protocol 17, port 80)".to_string(),
+        ])
+        .unwrap()
+        .optimize();
+
+        let result = get_protocol_factor(&Some(src_proto), &Some(dst_proto));
+        assert_eq!(result, 2 * 2 + 1);
+    }
+
+    #[test]
+    fn test_get_protocol_factor_2() {
+        let src_proto = PortObject::try_from(&vec![
+            "Source Ports       : ephemeral (protocol 6, port 1024-1025)".to_string(),
+            "HTTP (protocol 6, port 80)".to_string(),
+            "HTTP over UDP (protocol 17, port 80)".to_string(),
+        ])
+        .unwrap()
+        .optimize();
+
+        let dst_proto = PortObject::try_from(&vec![
+            "Source Ports       : ephemeral (protocol 6, port 1024-1025)".to_string(),
+            "HTTP (protocol 6, port 80)".to_string(),
+            "HTTPS (protocol 6, port 443)".to_string(),
+            "HTTP over UDP (protocol 17, port 80)".to_string(),
+        ])
+        .unwrap()
+        .optimize();
+
+        let result = get_protocol_factor(&Some(src_proto), &Some(dst_proto));
+        assert_eq!(result, 2 * 3 + 1);
+    }
+
+    #[test]
+    fn test_get_protocol_factor_3() {
+        let src_proto = PortObject::try_from(&vec![
+            "Source Ports       : ephemeral (protocol 6, port 1024-1025)".to_string(),
+            "HTTP (protocol 6, port 80)".to_string(),
+            "HTTP over UDP (protocol 17, port 80)".to_string(),
+            "IGMP (protocol 2)".to_string(),
+        ])
+        .unwrap()
+        .optimize();
+
+        let dst_proto = PortObject::try_from(&vec![
+            "Source Ports       : ephemeral (protocol 6, port 1024-1025)".to_string(),
+            "HTTP (protocol 6, port 80)".to_string(),
+            "HTTPS (protocol 6, port 443)".to_string(),
+            "HTTP over UDP (protocol 17, port 80)".to_string(),
+        ])
+        .unwrap()
+        .optimize();
+
+        let result = get_protocol_factor(&Some(src_proto), &Some(dst_proto));
+        assert_eq!(result, 2 * 3 + 1 + 1);
+    }
+
+    #[test]
+    fn test_get_protocol_factor_4() {
+        let src_proto = PortObject::try_from(&vec![
+            "Source Ports       : ephemeral (protocol 6, port 1024-1025)".to_string(),
+            "HTTP (protocol 6, port 80)".to_string(),
+            "HTTP over UDP (protocol 17, port 80)".to_string(),
+            "IGMP (protocol 2)".to_string(),
+        ])
+        .unwrap()
+        .optimize();
+
+        let dst_proto = PortObject::try_from(&vec![
+            "Source Ports       : ephemeral (protocol 6, port 1024-1025)".to_string(),
+            "HTTP (protocol 6, port 80)".to_string(),
+            "HTTPS (protocol 6, port 443)".to_string(),
+            "FTP (protocol 6, port 21)".to_string(),
+            "HTTP over UDP (protocol 17, port 80)".to_string(),
+        ])
+        .unwrap()
+        .optimize();
+
+        let result = get_protocol_factor(&Some(src_proto), &Some(dst_proto));
+        assert_eq!(result, 2 * 4 + 1 + 1);
     }
 }

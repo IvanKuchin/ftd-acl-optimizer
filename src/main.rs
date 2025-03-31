@@ -1,6 +1,6 @@
 use core::panic;
 use rules::Rules;
-use std::{path::PathBuf, vec};
+use std::path::PathBuf;
 
 pub mod rules;
 
