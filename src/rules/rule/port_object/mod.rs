@@ -8,7 +8,7 @@ use group::Group;
 
 use super::network_object::utilities;
 
-mod port_object_optimized;
+pub mod port_object_optimized;
 use port_object_optimized::PortObjectOptimized;
 
 mod port_object_item;
@@ -65,7 +65,7 @@ impl TryFrom<&Vec<String>> for PortObject {
 impl PortObject {
     /// Optimizes all PortLists inside the PortObject.
     /// Those optimizations automatically performed by FTD
-    fn optimize(&self) -> Vec<PortObjectOptimized> {
+    pub fn optimize(&self) -> Vec<PortObjectOptimized> {
         let port_lists: Vec<&PortList> = self
             .items
             .iter()
@@ -891,6 +891,7 @@ mod tests {
 
         let optimized = optimize_l4_items(port_lists);
         assert_eq!(optimized.len(), 2);
+        dbg!(&optimized);
     }
 
     #[test]

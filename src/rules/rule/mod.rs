@@ -1,8 +1,12 @@
 mod network_object;
+use std::collections::HashMap;
+
 use network_object::NetworkObject;
 
 mod port_object;
 use port_object::PortObject;
+
+use port_object::port_object_optimized::PortObjectOptimized;
 
 #[derive(Debug)]
 pub struct Rule {
@@ -131,10 +135,34 @@ impl TryFrom<Vec<String>> for Rule {
 
 impl Rule {
     pub fn capacity(&self) -> u64 {
+        let src_protocols = self.source_ports.as_ref().map(|p| p.optimize());
+        let dst_protocols = self.destination_ports.as_ref().map(|p| p.optimize());
+        let protocol_factor = get_protocol_factor(src_protocols, dst_protocols);
         self.source_networks.capacity() * self.destination_networks.capacity()
         // * self.source_ports.as_ref().map_or(1, |p| p.capacity())
         // * self.destination_ports.as_ref().map_or(1, |p| p.capacity())
     }
+}
+
+fn get_protocol_factor(
+    src_ports: Option<Vec<PortObjectOptimized>>,
+    dst_ports: Option<Vec<PortObjectOptimized>>,
+) -> u64 {
+    let src_protocols = src_ports.map_or(HashMap::new(), |p| protocol_freq_distribution(&p));
+    // let dst_factor = dst_ports.map_or(1, |p| p.protocol_factor());
+
+    1
+}
+
+fn protocol_freq_distribution(l3_l4_proto: &[PortObjectOptimized]) -> HashMap<u8, u64> {
+    let protocol_freq = l3_l4_proto.iter().fold(HashMap::new(), |mut acc, p| {
+        let protocol = p.get_protocol();
+        let count = acc.entry(protocol).or_insert(0);
+        *count += 1;
+        acc
+    });
+
+    protocol_freq
 }
 
 fn get_name(lines: &[String]) -> Result<String, RuleError> {
@@ -424,5 +452,52 @@ mod tests {
         };
 
         assert_eq!(rule.capacity(), 2 * 2);
+    }
+
+    #[test]
+    fn test_protocol_freq_distribution_single_protocol() {
+        let l3_l4_proto = PortObject::try_from(&vec![
+            "Source Ports       : ephemeral (protocol 6, port 1024-1025)".to_string(),
+        ])
+        .unwrap()
+        .optimize();
+        let result = protocol_freq_distribution(&l3_l4_proto);
+        assert_eq!(result.get(&6), Some(&1));
+    }
+
+    #[test]
+    fn test_protocol_freq_distribution_two_protocols() {
+        let l3_l4_proto = PortObject::try_from(&vec![
+            "Source Ports       : ephemeral (protocol 6, port 1024-1025)".to_string(),
+            "HTTP (protocol 6, port 80)".to_string(),
+        ])
+        .unwrap()
+        .optimize();
+        let result = protocol_freq_distribution(&l3_l4_proto);
+        assert_eq!(result.get(&6), Some(&2));
+    }
+
+    #[test]
+    fn test_protocol_freq_distribution_three_protocols() {
+        let l3_l4_proto = PortObject::try_from(&vec![
+            "Source Ports       : ephemeral (protocol 6, port 1024-1025)".to_string(),
+            "HTTP (protocol 6, port 80)".to_string(),
+            "HTTP over UDP (protocol 17, port 80)".to_string(),
+        ])
+        .unwrap()
+        .optimize();
+
+        dbg!(&l3_l4_proto);
+
+        let result = protocol_freq_distribution(&l3_l4_proto);
+        assert_eq!(result.get(&6), Some(&2));
+        assert_eq!(result.get(&17), Some(&1));
+    }
+
+    #[test]
+    fn test_protocol_freq_distribution_empty() {
+        let protocols: Vec<PortObjectOptimized> = vec![];
+        let result = protocol_freq_distribution(&protocols);
+        assert!(result.is_empty());
     }
 }

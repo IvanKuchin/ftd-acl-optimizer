@@ -25,4 +25,16 @@ impl PortObjectOptimized {
     pub fn set_name(&mut self, name: String) {
         self.name = name;
     }
+
+    pub fn get_protocol(&self) -> u8 {
+        self.items
+            .first()
+            .map(|port_list| port_list.get_protocol())
+            .unwrap_or_else(|| panic!
+                (
+                    "Logic error: PortObjectOptimized ({}) should have at least one PortList, if this error is triggered, parsing logic must be fixed. No PortObjectOptimized should be created with the empty items: Vec<PortList>",
+                    self.name
+                )
+            )
+    }
 }
