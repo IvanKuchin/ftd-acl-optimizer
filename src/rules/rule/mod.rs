@@ -138,9 +138,7 @@ impl Rule {
         let src_protocols = self.source_ports.as_ref().map(|p| p.optimize());
         let dst_protocols = self.destination_ports.as_ref().map(|p| p.optimize());
         let protocol_factor = get_protocol_factor(src_protocols, dst_protocols);
-        self.source_networks.capacity() * self.destination_networks.capacity()
-        // * self.source_ports.as_ref().map_or(1, |p| p.capacity())
-        // * self.destination_ports.as_ref().map_or(1, |p| p.capacity())
+        self.source_networks.capacity() * self.destination_networks.capacity() * protocol_factor
     }
 }
 
