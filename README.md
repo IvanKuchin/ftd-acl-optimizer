@@ -53,4 +53,55 @@ If you are getting closer to the limit - don't panic ! It is time to start think
 2. Collect 'show access-control-config`
 3. Run the script `ftd-acl-optimizer analyze -f collected_output.txt`
 
+## Optimizations
+
+### Built-in optimizations to FTD
+
+1. IP range optimized to subnets inside network onjects and groups.  
+   For example:  
+   192.168.0.0 - 192.168.0.5  
+   Will be optimized to two subnets: 192.168.0.0/30 and 192.168.0.4/31  
+2. Adjacent/overlap/shadow/etc ... layer 4 ports (TCP and UDP)
+   For example:  
+   SSH TCP 22  and FTP TCP 21  
+   Will be optimized to a contiguous range:
+   TCP 21-22
+
+### App optimization
+
+Due to port optimizations are done automatically, app only optimizes Adjacent/Overlap/Shadow subnets inside every Rule.
+IMPORTANT: Optimizations across rules are outside of the project scope.
+
+Assume there is a RULE my_app
+- Source subnets
+  - 192.168.168.0/25
+  - 192.168.168.128/25
+- Destination subnets
+  - 10.11.12.0/24
+  - 10.11.13.0/24
+- Source ports
+  - ephemeral
+  - FTP
+- Destination ports
+  - HTTPS
+  - FTP
+  
+Source subnets will be opimized to a single: 192.168.168.0/24  
+Destination subnets will be opimized to a single: 10.11.12.0/23  
+Destination ports will be optimized by FTD-code
+   
+Number of ACE before optimiziation: 
+2 (src subnets) * 2 (dst subnets) * 2 (src ports) * 2 (dest ports) = 16
+
+Number of ACE after optimiziation: 
+1 (src subnets) * 1 (dst subnets) * 2 (src ports) * 2 (dest ports) = 4
+
+Optimization factor: 16 / 4 = 4 
+
+### Types of optimization
+
+* Shadow - Example: 192.168.168.0/24 shadows by 192.168.0.0/16 (factor 2)
+* Overlap - Example: IP range 192.168.168.0-254 overlaps with 192.168.168.1-255 should be optimized to a single subnet 192.168.168.0/24 (factor 64)
+* Adhacency - Example: 192.168.168.0/25 and 192.168.168.128/25 optimizes to 192.168.168.0/24 (factor 2)
+
 
