@@ -69,7 +69,7 @@ If you are getting closer to the limit - don't panic ! It is time to start think
 
 ### App optimization
 
-Due to port optimizations are done automatically, app only optimizes Adjacent/Overlap/Shadow subnets inside rules (not across the whole access policy).
+Due to port optimizations are done automatically, app only optimizes Adjacent/Overlap/Shadow subnets inside rules (not across the whole access policy).  
 IMPORTANT: Optimizations across rules are outside of the project scope.
 
 Example: RULE my_app
