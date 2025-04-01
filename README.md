@@ -69,10 +69,10 @@ If you are getting closer to the limit - don't panic ! It is time to start think
 
 ### App optimization
 
-Due to port optimizations are done automatically, app only optimizes Adjacent/Overlap/Shadow subnets inside every Rule.
+Due to port optimizations are done automatically, app only optimizes Adjacent/Overlap/Shadow subnets inside rules (not across the whole access policy).
 IMPORTANT: Optimizations across rules are outside of the project scope.
 
-Assume there is a RULE my_app
+Example: RULE my_app
 - Source subnets
   - 192.168.168.0/25
   - 192.168.168.128/25
@@ -102,6 +102,6 @@ Optimization factor: 16 / 4 = 4
 
 * Shadow - Example: 192.168.168.0/24 shadows by 192.168.0.0/16 (factor 2)
 * Overlap - Example: IP range 192.168.168.0-254 overlaps with 192.168.168.1-255 should be optimized to a single subnet 192.168.168.0/24 (factor 64)
-* Adhacency - Example: 192.168.168.0/25 and 192.168.168.128/25 optimizes to 192.168.168.0/24 (factor 2)
+* Adjacency - Example: 192.168.168.0/25 and 192.168.168.128/25 optimizes to 192.168.168.0/24 (factor 2)
 
 
