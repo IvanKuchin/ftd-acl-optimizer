@@ -101,7 +101,7 @@ Optimization factor: 16 / 4 = 4
 ### Types of optimization
 
 * Shadow - Example: `192.168.168.0/24` shadows by `192.168.0.0/16` (factor 2)
-* Overlap - Example: IP range `192.168.168.0-254` overlaps with `192.168.168.1-255` should be optimized to a single subnet 192.168.168.0/24 (factor 64)
+* Overlap - Example: IP range `192.168.168.0-254` overlaps with `192.168.168.1-255` should be optimized to a single subnet `192.168.168.0/24` (factor 64)
 * Adjacency - Example: `192.168.168.0/25` and `192.168.168.128/25` optimizes to `192.168.168.0/24` (factor 2)
 
 
