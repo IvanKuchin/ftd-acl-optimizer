@@ -32,7 +32,7 @@ impl PortObjectOptimized {
             .map(|port_list| port_list.get_protocol())
             .unwrap_or_else(|| panic!
                 (
-                    "Logic error: PortObjectOptimized ({}) should have at least one PortList, if this error is triggered, parsing logic must be fixed. No PortObjectOptimized should be created with the empty items: Vec<PortList>",
+                    "Logic error: PortObjectOptimized ({}) should have at least one PortList, if this error is triggered, parsing logic must be fixed. The only way to craft PortObjectOptimized is from-method, which creates non-empty Vec<PortList>",
                     self.name
                 )
             )
