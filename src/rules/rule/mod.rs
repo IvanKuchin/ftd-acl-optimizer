@@ -1,20 +1,21 @@
 mod network_object;
 use std::collections::HashMap;
+use std::rc::Rc;
 
 use network_object::NetworkObject;
 
-mod port_object;
-use port_object::PortObject;
+mod protocol_object;
+use protocol_object::ProtocolObject;
 
-use port_object::port_object_optimized::PortObjectOptimized;
+use protocol_object::protocol_list_optimized::ProtocolListOptimized;
 
 #[derive(Debug)]
 pub struct Rule {
     name: String,
-    source_networks: NetworkObject,
-    destination_networks: NetworkObject,
-    source_ports: Option<PortObject>,
-    destination_ports: Option<PortObject>,
+    src_networks: NetworkObject,
+    dst_networks: NetworkObject,
+    src_protocols: Option<ProtocolObject>,
+    dst_protocols: Option<ProtocolObject>,
 }
 
 #[derive(thiserror::Error, Debug)]
@@ -26,7 +27,7 @@ pub enum RuleError {
     #[error("Fail to parse rule: {0}")]
     NetworkObjectError(#[from] network_object::NetworkObjectError),
     #[error("Fail to parse rule: {0}")]
-    PortObjectError(#[from] port_object::PortObjectError),
+    PortObjectError(#[from] protocol_object::PortObjectError),
 }
 
 impl TryFrom<Vec<String>> for Rule {
@@ -112,34 +113,34 @@ impl TryFrom<Vec<String>> for Rule {
             ],
         )?;
 
-        let source_networks = NetworkObject::try_from(&source_networks)?;
-        let destination_networks = NetworkObject::try_from(&destination_networks)?;
-        let source_ports = match source_ports.is_empty() {
+        let src_networks = NetworkObject::try_from(&source_networks)?;
+        let dst_networks = NetworkObject::try_from(&destination_networks)?;
+        let src_protocols = match source_ports.is_empty() {
             true => None,
-            false => Some(PortObject::try_from(&source_ports)?),
+            false => Some(ProtocolObject::try_from(&source_ports)?),
         };
-        let destination_ports = match destination_ports.is_empty() {
+        let dst_protocols = match destination_ports.is_empty() {
             true => None,
-            false => Some(PortObject::try_from(&destination_ports)?),
+            false => Some(ProtocolObject::try_from(&destination_ports)?),
         };
 
         Ok(Self {
             name,
-            source_networks,
-            destination_networks,
-            source_ports,
-            destination_ports,
+            src_networks,
+            dst_networks,
+            src_protocols,
+            dst_protocols,
         })
     }
 }
 
 impl Rule {
     pub fn capacity(&self) -> u64 {
-        let src_protocols = self.source_ports.as_ref().map(|p| p.optimize());
-        let dst_protocols = self.destination_ports.as_ref().map(|p| p.optimize());
+        let src_protocols = self.src_protocols.as_ref().map(|p| p.optimize());
+        let dst_protocols = self.dst_protocols.as_ref().map(|p| p.optimize());
         let protocol_factor = get_protocol_factor(&src_protocols, &dst_protocols);
 
-        self.source_networks.capacity() * self.destination_networks.capacity() * protocol_factor
+        self.src_networks.capacity() * self.dst_networks.capacity() * protocol_factor
     }
 }
 
@@ -149,8 +150,8 @@ impl Rule {
 /// dst_protocols = [TCP, UDP, UDP] -> (TCP, 1 time),  (UDP, 2 times)  
 /// protocol_factor =  TCP (2 * 1) + UDP (1 * 2) = 2 + 2 = 4
 fn get_protocol_factor(
-    src_ports: &Option<Vec<PortObjectOptimized>>,
-    dst_ports: &Option<Vec<PortObjectOptimized>>,
+    src_ports: &Option<Vec<ProtocolListOptimized>>,
+    dst_ports: &Option<Vec<ProtocolListOptimized>>,
 ) -> u64 {
     let src_protocols = src_ports
         .as_ref()
@@ -175,7 +176,7 @@ fn get_protocol_factor(
     })
 }
 
-fn protocol_freq_distribution(l3_l4_proto: &[PortObjectOptimized]) -> HashMap<u8, u64> {
+fn protocol_freq_distribution(l3_l4_proto: &[ProtocolListOptimized]) -> HashMap<u8, u64> {
     let protocol_freq = l3_l4_proto.iter().fold(HashMap::new(), |mut acc, p| {
         let protocol = p.get_protocol();
         let count = acc.entry(protocol).or_insert(0);
@@ -219,7 +220,7 @@ fn lines_from_till(lines: &[String], start: &str, end: &[&str]) -> Result<Vec<St
 mod tests {
     use super::*;
     use network_object::NetworkObject;
-    use port_object::PortObject;
+    use protocol_object::ProtocolObject;
 
     #[test]
     fn test_lines_from_till1() {
@@ -359,13 +360,13 @@ mod tests {
         ])
         .unwrap();
         let source_ports = Some(
-            PortObject::try_from(&vec![
+            ProtocolObject::try_from(&vec![
                 "Source Ports       : ephemeral (protocol 6, port 1024)".to_string(),
             ])
             .unwrap(),
         );
         let destination_ports = Some(
-            PortObject::try_from(&vec![
+            ProtocolObject::try_from(&vec![
                 "Destination Ports: HTTPS (protocol 6, port 443)".to_string()
             ])
             .unwrap(),
@@ -373,10 +374,10 @@ mod tests {
 
         let rule = Rule {
             name: "Custom_rule2".to_string(),
-            source_networks,
-            destination_networks,
-            source_ports,
-            destination_ports,
+            src_networks: source_networks,
+            dst_networks: destination_networks,
+            src_protocols: source_ports,
+            dst_protocols: destination_ports,
         };
 
         assert_eq!(rule.capacity(), 2 * 2);
@@ -398,10 +399,10 @@ mod tests {
 
         let rule = Rule {
             name: "Custom_rule2".to_string(),
-            source_networks,
-            destination_networks,
-            source_ports: None,
-            destination_ports: None,
+            src_networks: source_networks,
+            dst_networks: destination_networks,
+            src_protocols: None,
+            dst_protocols: None,
         };
 
         assert_eq!(rule.capacity(), 2 * 2);
@@ -421,7 +422,7 @@ mod tests {
         ])
         .unwrap();
         let source_ports = Some(
-            PortObject::try_from(&vec![
+            ProtocolObject::try_from(&vec![
                 "Source Ports       : ephemeral (protocol 6, port 1024)".to_string(),
             ])
             .unwrap(),
@@ -429,10 +430,10 @@ mod tests {
 
         let rule = Rule {
             name: "Custom_rule2".to_string(),
-            source_networks,
-            destination_networks,
-            source_ports,
-            destination_ports: None,
+            src_networks: source_networks,
+            dst_networks: destination_networks,
+            src_protocols: source_ports,
+            dst_protocols: None,
         };
 
         assert_eq!(rule.capacity(), 2 * 2);
@@ -452,13 +453,13 @@ mod tests {
         ])
         .unwrap();
         let source_ports = Some(
-            PortObject::try_from(&vec![
+            ProtocolObject::try_from(&vec![
                 "Source Ports       : ephemeral (protocol 6, port 1024-1025)".to_string(),
             ])
             .unwrap(),
         );
         let destination_ports = Some(
-            PortObject::try_from(&vec![
+            ProtocolObject::try_from(&vec![
                 "Destination Ports       : HTTPS (protocol 6, port 443-445)".to_string(),
             ])
             .unwrap(),
@@ -466,10 +467,10 @@ mod tests {
 
         let rule = Rule {
             name: "Custom_rule2".to_string(),
-            source_networks,
-            destination_networks,
-            source_ports,
-            destination_ports,
+            src_networks: source_networks,
+            dst_networks: destination_networks,
+            src_protocols: source_ports,
+            dst_protocols: destination_ports,
         };
 
         assert_eq!(rule.capacity(), 2 * 2);
@@ -477,7 +478,7 @@ mod tests {
 
     #[test]
     fn test_protocol_freq_distribution_single_protocol() {
-        let l3_l4_proto = PortObject::try_from(&vec![
+        let l3_l4_proto = ProtocolObject::try_from(&vec![
             "Source Ports       : ephemeral (protocol 6, port 1024-1025)".to_string(),
         ])
         .unwrap()
@@ -488,7 +489,7 @@ mod tests {
 
     #[test]
     fn test_protocol_freq_distribution_two_protocols() {
-        let l3_l4_proto = PortObject::try_from(&vec![
+        let l3_l4_proto = ProtocolObject::try_from(&vec![
             "Source Ports       : ephemeral (protocol 6, port 1024-1025)".to_string(),
             "HTTP (protocol 6, port 80)".to_string(),
         ])
@@ -500,7 +501,7 @@ mod tests {
 
     #[test]
     fn test_protocol_freq_distribution_three_protocols() {
-        let l3_l4_proto = PortObject::try_from(&vec![
+        let l3_l4_proto = ProtocolObject::try_from(&vec![
             "Source Ports       : ephemeral (protocol 6, port 1024-1025)".to_string(),
             "HTTP (protocol 6, port 80)".to_string(),
             "HTTP over UDP (protocol 17, port 80)".to_string(),
@@ -515,7 +516,7 @@ mod tests {
 
     #[test]
     fn test_protocol_freq_distribution_empty() {
-        let protocols: Vec<PortObjectOptimized> = vec![];
+        let protocols: Vec<ProtocolListOptimized> = vec![];
         let result = protocol_freq_distribution(&protocols);
         assert!(result.is_empty());
     }
@@ -528,7 +529,7 @@ mod tests {
 
     #[test]
     fn test_get_protocol_factor_half_empty_1() {
-        let l3_l4_proto = PortObject::try_from(&vec![
+        let l3_l4_proto = ProtocolObject::try_from(&vec![
             "Source Ports       : ephemeral (protocol 6, port 1024-1025)".to_string(),
             "HTTP (protocol 6, port 80)".to_string(),
             "HTTP over UDP (protocol 17, port 80)".to_string(),
@@ -542,7 +543,7 @@ mod tests {
 
     #[test]
     fn test_get_protocol_factor_half_empty_2() {
-        let l3_l4_proto = PortObject::try_from(&vec![
+        let l3_l4_proto = ProtocolObject::try_from(&vec![
             "Source Ports       : ephemeral (protocol 6, port 1024-1025)".to_string(),
             "HTTP (protocol 6, port 80)".to_string(),
             "HTTP over UDP (protocol 17, port 80)".to_string(),
@@ -556,7 +557,7 @@ mod tests {
 
     #[test]
     fn test_get_protocol_factor_1() {
-        let src_proto = PortObject::try_from(&vec![
+        let src_proto = ProtocolObject::try_from(&vec![
             "Source Ports       : ephemeral (protocol 6, port 1024-1025)".to_string(),
             "HTTP (protocol 6, port 80)".to_string(),
             "HTTP over UDP (protocol 17, port 80)".to_string(),
@@ -564,7 +565,7 @@ mod tests {
         .unwrap()
         .optimize();
 
-        let dst_proto = PortObject::try_from(&vec![
+        let dst_proto = ProtocolObject::try_from(&vec![
             "Source Ports       : ephemeral (protocol 6, port 1024-1025)".to_string(),
             "HTTP (protocol 6, port 80)".to_string(),
             "HTTP over UDP (protocol 17, port 80)".to_string(),
@@ -578,7 +579,7 @@ mod tests {
 
     #[test]
     fn test_get_protocol_factor_2() {
-        let src_proto = PortObject::try_from(&vec![
+        let src_proto = ProtocolObject::try_from(&vec![
             "Source Ports       : ephemeral (protocol 6, port 1024-1025)".to_string(),
             "HTTP (protocol 6, port 80)".to_string(),
             "HTTP over UDP (protocol 17, port 80)".to_string(),
@@ -586,7 +587,7 @@ mod tests {
         .unwrap()
         .optimize();
 
-        let dst_proto = PortObject::try_from(&vec![
+        let dst_proto = ProtocolObject::try_from(&vec![
             "Source Ports       : ephemeral (protocol 6, port 1024-1025)".to_string(),
             "HTTP (protocol 6, port 80)".to_string(),
             "HTTPS (protocol 6, port 443)".to_string(),
@@ -601,7 +602,7 @@ mod tests {
 
     #[test]
     fn test_get_protocol_factor_3() {
-        let src_proto = PortObject::try_from(&vec![
+        let src_proto = ProtocolObject::try_from(&vec![
             "Source Ports       : ephemeral (protocol 6, port 1024-1025)".to_string(),
             "HTTP (protocol 6, port 80)".to_string(),
             "HTTP over UDP (protocol 17, port 80)".to_string(),
@@ -610,7 +611,7 @@ mod tests {
         .unwrap()
         .optimize();
 
-        let dst_proto = PortObject::try_from(&vec![
+        let dst_proto = ProtocolObject::try_from(&vec![
             "Source Ports       : ephemeral (protocol 6, port 1024-1025)".to_string(),
             "HTTP (protocol 6, port 80)".to_string(),
             "HTTPS (protocol 6, port 443)".to_string(),
@@ -625,7 +626,7 @@ mod tests {
 
     #[test]
     fn test_get_protocol_factor_4() {
-        let src_proto = PortObject::try_from(&vec![
+        let src_proto = ProtocolObject::try_from(&vec![
             "Source Ports       : ephemeral (protocol 6, port 1024-1025)".to_string(),
             "HTTP (protocol 6, port 80)".to_string(),
             "HTTP over UDP (protocol 17, port 80)".to_string(),
@@ -634,7 +635,7 @@ mod tests {
         .unwrap()
         .optimize();
 
-        let dst_proto = PortObject::try_from(&vec![
+        let dst_proto = ProtocolObject::try_from(&vec![
             "Source Ports       : ephemeral (protocol 6, port 1024-1025)".to_string(),
             "HTTP (protocol 6, port 80)".to_string(),
             "HTTPS (protocol 6, port 443)".to_string(),

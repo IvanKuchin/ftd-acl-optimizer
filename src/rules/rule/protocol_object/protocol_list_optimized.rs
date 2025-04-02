@@ -1,24 +1,24 @@
-use super::group::port_list::PortList;
+use super::group::protocol_list::ProtocolList;
 
 /// Vector of PortObjectItem returned after optimization  
 /// name - description of all operations performed on items  
 /// items - the list of PortList objects  
 /// PortList objects are flattened from the Group objects and normal PortList objects
 #[derive(Debug)]
-pub struct PortObjectOptimized {
+pub struct ProtocolListOptimized {
     name: String,
-    items: Vec<PortList>,
+    items: Vec<ProtocolList>,
 }
 
-impl PortObjectOptimized {
-    pub fn from(port_list: &PortList) -> Self {
-        PortObjectOptimized {
+impl ProtocolListOptimized {
+    pub fn from(port_list: &ProtocolList) -> Self {
+        ProtocolListOptimized {
             name: port_list.get_name().to_string(),
             items: vec![port_list.clone()],
         }
     }
 
-    pub fn append(&mut self, port_list: &PortList) {
+    pub fn append(&mut self, port_list: &ProtocolList) {
         self.items.push(port_list.clone());
     }
 

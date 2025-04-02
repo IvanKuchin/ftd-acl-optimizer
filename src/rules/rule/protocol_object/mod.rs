@@ -2,22 +2,22 @@ use std::cmp::max;
 use std::str::FromStr;
 
 mod group;
-use group::port_list::PortList;
-use group::port_list::{self, tcp_udp};
+use group::protocol_list::ProtocolList;
+use group::protocol_list::{self, tcp_udp};
 use group::Group;
 
 use super::network_object::utilities;
 
-pub mod port_object_optimized;
-use port_object_optimized::PortObjectOptimized;
+pub mod protocol_list_optimized;
+use protocol_list_optimized::ProtocolListOptimized;
 
-mod port_object_item;
-use port_object_item::PortObjectItem;
+mod protocol_object_item;
+use protocol_object_item::ProtocolObjectItem;
 
 #[derive(Debug)]
-pub struct PortObject {
+pub struct ProtocolObject {
     name: String,
-    items: Vec<PortObjectItem>,
+    items: Vec<ProtocolObjectItem>,
 }
 
 #[derive(thiserror::Error, Debug)]
@@ -25,14 +25,14 @@ pub enum PortObjectError {
     #[error("Failed to parse port object: {0}")]
     General(String),
     #[error("Failed to parse port object: {0}")]
-    PortListError(#[from] port_list::PortListError),
+    PortListError(#[from] protocol_list::PortListError),
     #[error("Failed to parse port object: {0}")]
     GroupError(#[from] group::GroupError),
     #[error("Fail to parse port object: {0}")]
     NameExtractionError(#[from] utilities::UtilitiesError),
 }
 
-impl TryFrom<&Vec<String>> for PortObject {
+impl TryFrom<&Vec<String>> for ProtocolObject {
     type Error = PortObjectError;
 
     // Example input:
@@ -58,33 +58,33 @@ impl TryFrom<&Vec<String>> for PortObject {
             idx += obj_lines_count;
         }
 
-        Ok(PortObject { name, items })
+        Ok(ProtocolObject { name, items })
     }
 }
 
-impl PortObject {
+impl ProtocolObject {
     /// Optimizes all PortLists inside the PortObject.
     /// Those optimizations automatically performed by FTD
-    pub fn optimize(&self) -> Vec<PortObjectOptimized> {
-        let port_lists: Vec<&PortList> = self
+    pub fn optimize(&self) -> Vec<ProtocolListOptimized> {
+        let port_lists: Vec<&ProtocolList> = self
             .items
             .iter()
             .flat_map(|item| item.collect_objects())
             .collect();
 
-        let l3_items: Vec<&PortList> = port_lists
+        let l3_items: Vec<&ProtocolList> = port_lists
             .iter()
             .filter(|port_list| !port_list.is_l4())
             .copied()
             .collect();
         let unique_l3_items = unique_l3_items(l3_items);
 
-        let unique_l3_items: Vec<PortObjectOptimized> = unique_l3_items
+        let unique_l3_items: Vec<ProtocolListOptimized> = unique_l3_items
             .iter()
-            .map(|port_list| PortObjectOptimized::from(port_list))
+            .map(|port_list| ProtocolListOptimized::from(port_list))
             .collect();
 
-        let l4_items: Vec<&PortList> = port_lists
+        let l4_items: Vec<&ProtocolList> = port_lists
             .iter()
             .filter(|port_list| port_list.is_l4())
             .copied()
@@ -99,7 +99,7 @@ impl PortObject {
 }
 
 /// Get the next object from input lines (either Group or PortList) and the number of lines to consume.
-fn get_object(lines: &[String]) -> Result<(PortObjectItem, usize), PortObjectError> {
+fn get_object(lines: &[String]) -> Result<(ProtocolObjectItem, usize), PortObjectError> {
     if lines.is_empty() {
         return Err(PortObjectError::General(
             "Input lines are empty".to_string(),
@@ -110,14 +110,14 @@ fn get_object(lines: &[String]) -> Result<(PortObjectItem, usize), PortObjectErr
     if first_line.contains("(group)") {
         let lines_in_group = utilities::calculate_lines_in_group(lines)?;
         let group = Group::try_from(&lines[0..lines_in_group].to_vec())?;
-        Ok((PortObjectItem::Group(group), lines_in_group))
+        Ok((ProtocolObjectItem::Group(group), lines_in_group))
     } else {
-        let port_list = PortList::from_str(first_line)?;
-        Ok((PortObjectItem::PortList(port_list), 1))
+        let port_list = ProtocolList::from_str(first_line)?;
+        Ok((ProtocolObjectItem::ProtocolList(port_list), 1))
     }
 }
 
-fn unique_l3_items(port_lists: Vec<&PortList>) -> Vec<&PortList> {
+fn unique_l3_items(port_lists: Vec<&ProtocolList>) -> Vec<&ProtocolList> {
     let unique_items = port_lists
         .iter()
         .collect::<std::collections::HashSet<_>>()
@@ -128,7 +128,7 @@ fn unique_l3_items(port_lists: Vec<&PortList>) -> Vec<&PortList> {
     unique_items
 }
 
-fn optimize_l4_items(port_lists: Vec<&PortList>) -> Vec<PortObjectOptimized> {
+fn optimize_l4_items(port_lists: Vec<&ProtocolList>) -> Vec<ProtocolListOptimized> {
     let mut port_lists = port_lists;
     port_lists.sort_by_key(|item| ((item.get_protocol() as u32) << 16) + item.get_ports().0 as u32);
 
@@ -138,7 +138,7 @@ fn optimize_l4_items(port_lists: Vec<&PortList>) -> Vec<PortObjectOptimized> {
         return optimized_port_lists;
     }
 
-    let mut optimized_port_list = PortObjectOptimized::from(port_lists[0]);
+    let mut optimized_port_list = ProtocolListOptimized::from(port_lists[0]);
     let mut current_port_list = port_lists[0].clone();
 
     for next_port_list in port_lists.into_iter().skip(1) {
@@ -160,7 +160,7 @@ fn optimize_l4_items(port_lists: Vec<&PortList>) -> Vec<PortObjectOptimized> {
                     .start(curr_start)
                     .end(max(curr_end, next_end))
                     .build();
-                current_port_list = port_list::PortList::TcpUdp(tcp_udp_obj);
+                current_port_list = protocol_list::ProtocolList::TcpUdp(tcp_udp_obj);
 
                 optimized_port_list.append(next_port_list);
                 optimized_port_list.set_name(new_name);
@@ -168,13 +168,13 @@ fn optimize_l4_items(port_lists: Vec<&PortList>) -> Vec<PortObjectOptimized> {
                 current_port_list = next_port_list.clone();
 
                 optimized_port_lists.push(optimized_port_list);
-                optimized_port_list = PortObjectOptimized::from(next_port_list);
+                optimized_port_list = ProtocolListOptimized::from(next_port_list);
             }
         } else {
             current_port_list = next_port_list.clone();
 
             optimized_port_lists.push(optimized_port_list);
-            optimized_port_list = PortObjectOptimized::from(next_port_list);
+            optimized_port_list = ProtocolListOptimized::from(next_port_list);
         }
     }
 
@@ -197,7 +197,7 @@ fn description_verb(curr_end: u16, next_start: u16, next_end: u16) -> String {
 mod tests {
     use super::*;
 
-    impl PortObject {
+    impl ProtocolObject {
         // capacity calculation does not work on a port object level, it should be done on a rule level
         // due to capacity calculation must be done on a same L3 protocol. For example: source TCP with destination TCP
         fn capacity(&self) -> u64 {
@@ -208,7 +208,7 @@ mod tests {
     #[test]
     fn test_empty_input() {
         let lines: Vec<String> = vec![];
-        let result = PortObject::try_from(&lines);
+        let result = ProtocolObject::try_from(&lines);
         assert!(result.is_err());
         assert_eq!(
             format!("{}", result.unwrap_err()),
@@ -219,13 +219,13 @@ mod tests {
     #[test]
     fn test_single_port_list() {
         let lines = vec!["Destination Ports     : TCP-8080 (protocol 6, port 8080)".to_string()];
-        let result = PortObject::try_from(&lines);
+        let result = ProtocolObject::try_from(&lines);
         assert!(result.is_ok());
         let port_object = result.unwrap();
         assert_eq!(port_object.name, "Destination Ports");
         assert_eq!(port_object.items.len(), 1);
         match &port_object.items[0] {
-            PortObjectItem::PortList(port_list) => {
+            ProtocolObjectItem::ProtocolList(port_list) => {
                 assert_eq!(port_list.to_string(), "TCP-8080 (protocol 6, port 8080)");
             }
             _ => panic!("Expected PortList"),
@@ -239,14 +239,14 @@ mod tests {
             "  HTTP (protocol 6, port 80)".to_string(),
             "  HTTPS (protocol 6, port 443)".to_string(),
         ];
-        let result = PortObject::try_from(&lines);
+        let result = ProtocolObject::try_from(&lines);
         assert!(result.is_ok());
         let port_object = result.unwrap();
         assert_eq!(port_object.name, "Destination Ports");
         assert_eq!(port_object.items.len(), 1);
         match &port_object.items[0] {
-            PortObjectItem::Group(group) => {
-                assert_eq!(group.name, "HTTP-HTTPS_1");
+            ProtocolObjectItem::Group(group) => {
+                assert_eq!(group._name, "HTTP-HTTPS_1");
                 assert_eq!(group.port_lists.len(), 2);
             }
             _ => panic!("Expected Group"),
@@ -262,26 +262,26 @@ mod tests {
             "TCP-8080 (protocol 6, port 8080)".to_string(),
             "protocol 6, port 33434".to_string(),
         ];
-        let result = PortObject::try_from(&lines);
+        let result = ProtocolObject::try_from(&lines);
         assert!(result.is_ok());
         let port_object = result.unwrap();
         assert_eq!(port_object.name, "Destination Ports");
         assert_eq!(port_object.items.len(), 3);
         match &port_object.items[0] {
-            PortObjectItem::Group(group) => {
-                assert_eq!(group.name, "HTTP-HTTPS_1");
+            ProtocolObjectItem::Group(group) => {
+                assert_eq!(group._name, "HTTP-HTTPS_1");
                 assert_eq!(group.port_lists.len(), 2);
             }
             _ => panic!("Expected Group"),
         }
         match &port_object.items[1] {
-            PortObjectItem::PortList(port_list) => {
+            ProtocolObjectItem::ProtocolList(port_list) => {
                 assert_eq!(port_list.to_string(), "TCP-8080 (protocol 6, port 8080)");
             }
             _ => panic!("Expected PortList"),
         }
         match &port_object.items[2] {
-            PortObjectItem::PortList(port_list) => {
+            ProtocolObjectItem::ProtocolList(port_list) => {
                 assert_eq!(
                     port_list.to_string(),
                     "protocol 6, port 33434 (protocol 6, port 33434)"
@@ -294,7 +294,7 @@ mod tests {
     #[test]
     fn test_port_object_capacity_single_port_list() {
         let lines = vec!["Destination Ports     : TCP-8080 (protocol 6, port 8080)".to_string()];
-        let port_object = PortObject::try_from(&lines).unwrap();
+        let port_object = ProtocolObject::try_from(&lines).unwrap();
         assert_eq!(port_object.capacity(), 1); // Single port
     }
 
@@ -306,7 +306,7 @@ mod tests {
             "  HTTPS (protocol 6, port 443)".to_string(),
             "TCP-8080 (protocol 6, port 8080)".to_string(),
         ];
-        let port_object = PortObject::try_from(&lines).unwrap();
+        let port_object = ProtocolObject::try_from(&lines).unwrap();
         assert_eq!(port_object.capacity(), 3); // Three ports
     }
 
@@ -316,14 +316,14 @@ mod tests {
             "Destination Ports     : HTTP-HTTPS_1 (group)".to_string(),
             "  HTTP (protocol 6, port 80-81)".to_string(),
         ];
-        let port_object = PortObject::try_from(&lines).unwrap();
+        let port_object = ProtocolObject::try_from(&lines).unwrap();
         assert_eq!(port_object.capacity(), 1); // Port range 80-81
     }
 
     #[test]
     fn test_port_object_capacity_empty() {
         let lines = vec!["Destination Ports     : HTTP-HTTPS_1 (group)".to_string()];
-        let port_object = PortObject::try_from(&lines).unwrap();
+        let port_object = ProtocolObject::try_from(&lines).unwrap();
         assert_eq!(port_object.capacity(), 0); // No ports
     }
 
@@ -336,7 +336,7 @@ mod tests {
             "TCP-8080 (protocol 6, port 8080)".to_string(),
             "protocol 6, port 33434".to_string(),
         ];
-        let port_object = PortObject::try_from(&lines).unwrap();
+        let port_object = ProtocolObject::try_from(&lines).unwrap();
         assert_eq!(port_object.capacity(), 4); // 1 port + 3 ports in range + 1 port + 1 port
     }
 
@@ -351,8 +351,8 @@ mod tests {
             "AH (protocol 51)".to_string(),
             "protocol 10".to_string(),
         ];
-        let port_object = PortObject::try_from(&lines).unwrap();
-        let port_lists: Vec<&PortList> = port_object
+        let port_object = ProtocolObject::try_from(&lines).unwrap();
+        let port_lists: Vec<&ProtocolList> = port_object
             .items
             .iter()
             .flat_map(|item| item.collect_objects())
@@ -373,8 +373,8 @@ mod tests {
             "PIM (protocol 103)".to_string(),
             "protocol 6".to_string(),
         ];
-        let port_object = PortObject::try_from(&lines).unwrap();
-        let port_lists: Vec<&PortList> = port_object
+        let port_object = ProtocolObject::try_from(&lines).unwrap();
+        let port_lists: Vec<&ProtocolList> = port_object
             .items
             .iter()
             .flat_map(|item| item.collect_objects())
@@ -395,8 +395,8 @@ mod tests {
             "PIM (protocol 103)".to_string(),
             "protocol 6".to_string(),
         ];
-        let port_object = PortObject::try_from(&lines).unwrap();
-        let port_lists: Vec<&PortList> = port_object
+        let port_object = ProtocolObject::try_from(&lines).unwrap();
+        let port_lists: Vec<&ProtocolList> = port_object
             .items
             .iter()
             .flat_map(|item| item.collect_objects())
@@ -417,8 +417,8 @@ mod tests {
             "PIM (protocol 103)".to_string(),
             "protocol 6".to_string(),
         ];
-        let port_object = PortObject::try_from(&lines).unwrap();
-        let port_lists: Vec<&PortList> = port_object
+        let port_object = ProtocolObject::try_from(&lines).unwrap();
+        let port_lists: Vec<&ProtocolList> = port_object
             .items
             .iter()
             .flat_map(|item| item.collect_objects())
@@ -435,8 +435,8 @@ mod tests {
             "  ICMP1 (protocol 1, type 4, code 11)".to_string(),
             "ICMP1 (protocol 1, type 4, code 12)".to_string(),
         ];
-        let port_object = PortObject::try_from(&lines).unwrap();
-        let port_lists: Vec<&PortList> = port_object
+        let port_object = ProtocolObject::try_from(&lines).unwrap();
+        let port_lists: Vec<&ProtocolList> = port_object
             .items
             .iter()
             .flat_map(|item| item.collect_objects())
@@ -454,8 +454,8 @@ mod tests {
             "ICMP2 (protocol 1, type 4)".to_string(),
             "ICMP3 (protocol 1, type 4, code 12)".to_string(),
         ];
-        let port_object = PortObject::try_from(&lines).unwrap();
-        let port_lists: Vec<&PortList> = port_object
+        let port_object = ProtocolObject::try_from(&lines).unwrap();
+        let port_lists: Vec<&ProtocolList> = port_object
             .items
             .iter()
             .flat_map(|item| item.collect_objects())
@@ -472,8 +472,8 @@ mod tests {
             "  ICMP1 (protocol 1, type 4, code 11)".to_string(),
             "ICMP2 (protocol 1, type 4, code 11)".to_string(),
         ];
-        let port_object = PortObject::try_from(&lines).unwrap();
-        let port_lists: Vec<&PortList> = port_object
+        let port_object = ProtocolObject::try_from(&lines).unwrap();
+        let port_lists: Vec<&ProtocolList> = port_object
             .items
             .iter()
             .flat_map(|item| item.collect_objects())
@@ -495,8 +495,8 @@ mod tests {
             "PIM (protocol 103)".to_string(),
             "protocol 6".to_string(),
         ];
-        let port_object = PortObject::try_from(&lines).unwrap();
-        let port_lists: Vec<&PortList> = port_object
+        let port_object = ProtocolObject::try_from(&lines).unwrap();
+        let port_lists: Vec<&ProtocolList> = port_object
             .items
             .iter()
             .flat_map(|item| item.collect_objects())
@@ -518,8 +518,8 @@ mod tests {
             "PIM (protocol 103)".to_string(),
             "protocol 6".to_string(),
         ];
-        let port_object = PortObject::try_from(&lines).unwrap();
-        let port_lists: Vec<&PortList> = port_object
+        let port_object = ProtocolObject::try_from(&lines).unwrap();
+        let port_lists: Vec<&ProtocolList> = port_object
             .items
             .iter()
             .flat_map(|item| item.collect_objects())
@@ -542,8 +542,8 @@ mod tests {
             "  LdP (protocol 39)".to_string(),
             "protocol 6".to_string(),
         ];
-        let port_object = PortObject::try_from(&lines).unwrap();
-        let port_lists: Vec<&PortList> = port_object
+        let port_object = ProtocolObject::try_from(&lines).unwrap();
+        let port_lists: Vec<&ProtocolList> = port_object
             .items
             .iter()
             .flat_map(|item| item.collect_objects())
@@ -566,8 +566,8 @@ mod tests {
             "protocol 39".to_string(),
             "protocol 6".to_string(),
         ];
-        let port_object = PortObject::try_from(&lines).unwrap();
-        let port_lists: Vec<&PortList> = port_object
+        let port_object = ProtocolObject::try_from(&lines).unwrap();
+        let port_lists: Vec<&ProtocolList> = port_object
             .items
             .iter()
             .flat_map(|item| item.collect_objects())
@@ -588,7 +588,7 @@ mod tests {
             "AH (protocol 51)".to_string(),
             "protocol 10".to_string(),
         ];
-        assert_eq!(PortObject::try_from(&lines).unwrap().capacity(), 6);
+        assert_eq!(ProtocolObject::try_from(&lines).unwrap().capacity(), 6);
     }
 
     #[test]
@@ -602,7 +602,7 @@ mod tests {
             "PIM (protocol 103)".to_string(),
             "protocol 6".to_string(),
         ];
-        assert_eq!(PortObject::try_from(&lines).unwrap().capacity(), 5);
+        assert_eq!(ProtocolObject::try_from(&lines).unwrap().capacity(), 5);
     }
 
     #[test]
@@ -616,7 +616,7 @@ mod tests {
             "PIM (protocol 103)".to_string(),
             "protocol 6".to_string(),
         ];
-        assert_eq!(PortObject::try_from(&lines).unwrap().capacity(), 5);
+        assert_eq!(ProtocolObject::try_from(&lines).unwrap().capacity(), 5);
     }
 
     #[test]
@@ -630,7 +630,7 @@ mod tests {
             "PIM (protocol 103)".to_string(),
             "protocol 6".to_string(),
         ];
-        assert_eq!(PortObject::try_from(&lines).unwrap().capacity(), 5);
+        assert_eq!(ProtocolObject::try_from(&lines).unwrap().capacity(), 5);
     }
 
     #[test]
@@ -645,7 +645,7 @@ mod tests {
             "PIM (protocol 103)".to_string(),
             "protocol 6".to_string(),
         ];
-        assert_eq!(PortObject::try_from(&lines).unwrap().capacity(), 5);
+        assert_eq!(ProtocolObject::try_from(&lines).unwrap().capacity(), 5);
     }
 
     #[test]
@@ -661,7 +661,7 @@ mod tests {
             "LdP (protocol 39)".to_string(),
             "protocol 6".to_string(),
         ];
-        assert_eq!(PortObject::try_from(&lines).unwrap().capacity(), 5);
+        assert_eq!(ProtocolObject::try_from(&lines).unwrap().capacity(), 5);
     }
 
     #[test]
@@ -677,7 +677,7 @@ mod tests {
             "protocol 39".to_string(),
             "protocol 6".to_string(),
         ];
-        assert_eq!(PortObject::try_from(&lines).unwrap().capacity(), 5);
+        assert_eq!(ProtocolObject::try_from(&lines).unwrap().capacity(), 5);
     }
 
     #[test]
@@ -689,7 +689,7 @@ mod tests {
             "EH (protocol 88)".to_string(),
             "protocol 6".to_string(),
         ];
-        assert_eq!(PortObject::try_from(&lines).unwrap().capacity(), 4);
+        assert_eq!(ProtocolObject::try_from(&lines).unwrap().capacity(), 4);
     }
 
     #[test]
@@ -701,7 +701,7 @@ mod tests {
             "  AH (protocol 51)".to_string(),
             "protocol 6".to_string(),
         ];
-        assert_eq!(PortObject::try_from(&lines).unwrap().capacity(), 4);
+        assert_eq!(ProtocolObject::try_from(&lines).unwrap().capacity(), 4);
     }
 
     #[test]
@@ -711,7 +711,7 @@ mod tests {
             "  HTTP (protocol 6, port 80)".to_string(),
             "  HTTP2 (protocol 6, port 82)".to_string(),
         ];
-        assert_eq!(PortObject::try_from(&lines).unwrap().capacity(), 2);
+        assert_eq!(ProtocolObject::try_from(&lines).unwrap().capacity(), 2);
     }
 
     #[test]
@@ -721,7 +721,7 @@ mod tests {
             "  HTTP (protocol 6, port 80-81)".to_string(),
             "  HTTP2 (protocol 6, port 82-83)".to_string(),
         ];
-        assert_eq!(PortObject::try_from(&lines).unwrap().capacity(), 1);
+        assert_eq!(ProtocolObject::try_from(&lines).unwrap().capacity(), 1);
     }
 
     #[test]
@@ -731,7 +731,7 @@ mod tests {
             "  HTTP (protocol 6, port 80-81)".to_string(),
             "HTTP2 (protocol 6, port 82-83)".to_string(),
         ];
-        assert_eq!(PortObject::try_from(&lines).unwrap().capacity(), 1);
+        assert_eq!(ProtocolObject::try_from(&lines).unwrap().capacity(), 1);
     }
 
     #[test]
@@ -742,7 +742,7 @@ mod tests {
             "HTTP2 (protocol 6, port 82-83)".to_string(),
             "HTTP3 (protocol 6, port 84-87)".to_string(),
         ];
-        assert_eq!(PortObject::try_from(&lines).unwrap().capacity(), 1);
+        assert_eq!(ProtocolObject::try_from(&lines).unwrap().capacity(), 1);
     }
 
     #[test]
@@ -753,7 +753,7 @@ mod tests {
             "SMTP (protocol 6, port 25)".to_string(),
             "HTTP3 (protocol 6, port 80-87)".to_string(),
         ];
-        assert_eq!(PortObject::try_from(&lines).unwrap().capacity(), 2);
+        assert_eq!(ProtocolObject::try_from(&lines).unwrap().capacity(), 2);
     }
 
     #[test]
@@ -766,7 +766,7 @@ mod tests {
             "POP3 (protocol 6, port 110)".to_string(),
             "HTTP3 (protocol 6, port 80-80)".to_string(),
         ];
-        assert_eq!(PortObject::try_from(&lines).unwrap().capacity(), 3);
+        assert_eq!(ProtocolObject::try_from(&lines).unwrap().capacity(), 3);
     }
 
     #[test]
@@ -780,7 +780,7 @@ mod tests {
             "HTTP3 (protocol 6, port 80-80)".to_string(),
             "HTTP4 (protocol 6, port 80-80)".to_string(),
         ];
-        assert_eq!(PortObject::try_from(&lines).unwrap().capacity(), 3);
+        assert_eq!(ProtocolObject::try_from(&lines).unwrap().capacity(), 3);
     }
 
     #[test]
@@ -794,7 +794,7 @@ mod tests {
             "FTP (protocol 6, port 21)".to_string(),
             "EIGRP (protocol 88)".to_string(),
         ];
-        assert_eq!(PortObject::try_from(&lines).unwrap().capacity(), 4);
+        assert_eq!(ProtocolObject::try_from(&lines).unwrap().capacity(), 4);
     }
 
     #[test]
@@ -804,8 +804,8 @@ mod tests {
             "  HTTP (protocol 6, port 80-82)".to_string(),
             "HTTP2 (protocol 6, port 81-82)".to_string(),
         ];
-        let port_object = PortObject::try_from(&lines).unwrap();
-        let port_lists: Vec<&PortList> = port_object
+        let port_object = ProtocolObject::try_from(&lines).unwrap();
+        let port_lists: Vec<&ProtocolList> = port_object
             .items
             .iter()
             .flat_map(|item| item.collect_objects())
@@ -824,8 +824,8 @@ mod tests {
             "HTTP2 (protocol 6, port 81-82)".to_string(),
             "UDP81-82 (protocol 17, port 81-82)".to_string(),
         ];
-        let port_object = PortObject::try_from(&lines).unwrap();
-        let port_lists: Vec<&PortList> = port_object
+        let port_object = ProtocolObject::try_from(&lines).unwrap();
+        let port_lists: Vec<&ProtocolList> = port_object
             .items
             .iter()
             .flat_map(|item| item.collect_objects())
@@ -844,8 +844,8 @@ mod tests {
             "TCP (protocol 6)".to_string(),
             "UDP (protocol 17)".to_string(),
         ];
-        let port_object = PortObject::try_from(&lines).unwrap();
-        let port_lists: Vec<&PortList> = port_object
+        let port_object = ProtocolObject::try_from(&lines).unwrap();
+        let port_lists: Vec<&ProtocolList> = port_object
             .items
             .iter()
             .flat_map(|item| item.collect_objects())
@@ -862,8 +862,8 @@ mod tests {
             "  HTTP (protocol 6, port 80-82)".to_string(),
             "HTTP2 (protocol 6, port 81-85)".to_string(),
         ];
-        let port_object = PortObject::try_from(&lines).unwrap();
-        let port_lists: Vec<&PortList> = port_object
+        let port_object = ProtocolObject::try_from(&lines).unwrap();
+        let port_lists: Vec<&ProtocolList> = port_object
             .items
             .iter()
             .flat_map(|item| item.collect_objects())
@@ -882,8 +882,8 @@ mod tests {
             "HTTP2 (protocol 6, port 81-85)".to_string(),
             "UDP2 (protocol 17, port 81-85)".to_string(),
         ];
-        let port_object = PortObject::try_from(&lines).unwrap();
-        let port_lists: Vec<&PortList> = port_object
+        let port_object = ProtocolObject::try_from(&lines).unwrap();
+        let port_lists: Vec<&ProtocolList> = port_object
             .items
             .iter()
             .flat_map(|item| item.collect_objects())
@@ -901,8 +901,8 @@ mod tests {
             "  HTTP (protocol 6, port 80-82)".to_string(),
             "HTTP2 (protocol 6, port 83-85)".to_string(),
         ];
-        let port_object = PortObject::try_from(&lines).unwrap();
-        let port_lists: Vec<&PortList> = port_object
+        let port_object = ProtocolObject::try_from(&lines).unwrap();
+        let port_lists: Vec<&ProtocolList> = port_object
             .items
             .iter()
             .flat_map(|item| item.collect_objects())
@@ -920,8 +920,8 @@ mod tests {
             "HTTP82 (protocol 6, port 82-82)".to_string(),
             "HTTP81 (protocol 6, port 81-81)".to_string(),
         ];
-        let port_object = PortObject::try_from(&lines).unwrap();
-        let port_lists: Vec<&PortList> = port_object
+        let port_object = ProtocolObject::try_from(&lines).unwrap();
+        let port_lists: Vec<&ProtocolList> = port_object
             .items
             .iter()
             .flat_map(|item| item.collect_objects())
@@ -942,8 +942,8 @@ mod tests {
             "HTTP81 (protocol 6, port 81-81)".to_string(),
             "UDP81 (protocol 17, port 81-81)".to_string(),
         ];
-        let port_object = PortObject::try_from(&lines).unwrap();
-        let port_lists: Vec<&PortList> = port_object
+        let port_object = ProtocolObject::try_from(&lines).unwrap();
+        let port_lists: Vec<&ProtocolList> = port_object
             .items
             .iter()
             .flat_map(|item| item.collect_objects())
@@ -956,8 +956,8 @@ mod tests {
     #[test]
     fn test_optimize_l4_items_empty() {
         let lines = vec!["Destination Ports     : MyGroup1 (group)".to_string()];
-        let port_object = PortObject::try_from(&lines).unwrap();
-        let port_lists: Vec<&PortList> = port_object
+        let port_object = ProtocolObject::try_from(&lines).unwrap();
+        let port_lists: Vec<&ProtocolList> = port_object
             .items
             .iter()
             .flat_map(|item| item.collect_objects())
@@ -977,8 +977,8 @@ mod tests {
             "HTTP2 (protocol 6, port 81-85)".to_string(),
             "UDP2 (protocol 17, port 81-85)".to_string(),
         ];
-        let port_object = PortObject::try_from(&lines).unwrap();
-        let port_lists: Vec<&PortList> = port_object
+        let port_object = ProtocolObject::try_from(&lines).unwrap();
+        let port_lists: Vec<&ProtocolList> = port_object
             .items
             .iter()
             .flat_map(|item| item.collect_objects())
@@ -1000,8 +1000,8 @@ mod tests {
             "ESP (protocol 50)".to_string(),
             "UDP2 (protocol 17, port 81-85)".to_string(),
         ];
-        let port_object = PortObject::try_from(&lines).unwrap();
-        let port_lists: Vec<&PortList> = port_object
+        let port_object = ProtocolObject::try_from(&lines).unwrap();
+        let port_lists: Vec<&ProtocolList> = port_object
             .items
             .iter()
             .flat_map(|item| item.collect_objects())
@@ -1025,8 +1025,8 @@ mod tests {
             "HTTP3 (protocol 6, port 81-82)".to_string(),
             "UDP3 (protocol 17, port 86-87)".to_string(),
         ];
-        let port_object = PortObject::try_from(&lines).unwrap();
-        let port_lists: Vec<&PortList> = port_object
+        let port_object = ProtocolObject::try_from(&lines).unwrap();
+        let port_lists: Vec<&ProtocolList> = port_object
             .items
             .iter()
             .flat_map(|item| item.collect_objects())
@@ -1051,8 +1051,8 @@ mod tests {
             "AH_2 (protocol 51)".to_string(),
             "UDP3 (protocol 17, port 86-87)".to_string(),
         ];
-        let port_object = PortObject::try_from(&lines).unwrap();
-        let port_lists: Vec<&PortList> = port_object
+        let port_object = ProtocolObject::try_from(&lines).unwrap();
+        let port_lists: Vec<&ProtocolList> = port_object
             .items
             .iter()
             .flat_map(|item| item.collect_objects())
