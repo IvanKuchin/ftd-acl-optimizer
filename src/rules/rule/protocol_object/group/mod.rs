@@ -1,12 +1,12 @@
 use std::str::FromStr;
 
-pub mod port_list;
-use port_list::PortList;
+pub mod protocol_list;
+use protocol_list::ProtocolList;
 
 #[derive(Debug)]
 pub struct Group {
-    pub name: String,
-    pub port_lists: Vec<PortList>,
+    pub _name: String,
+    pub port_lists: Vec<ProtocolList>,
 }
 
 #[derive(thiserror::Error, Debug)]
@@ -14,7 +14,7 @@ pub enum GroupError {
     #[error("Fail to parse port group: {0}")]
     General(String),
     #[error("Failed to parse port group: {0}")]
-    PortListError(#[from] port_list::PortListError),
+    PortListError(#[from] protocol_list::PortListError),
 }
 
 impl TryFrom<&Vec<String>> for Group {
@@ -39,27 +39,22 @@ impl TryFrom<&Vec<String>> for Group {
             for line in &lines[1..] {
                 let port = line.trim();
                 if !port.is_empty() {
-                    port_lists.push(PortList::from_str(port)?);
+                    port_lists.push(ProtocolList::from_str(port)?);
                 }
             }
 
-            Ok(Self { name, port_lists })
+            Ok(Self {
+                _name: name,
+                port_lists,
+            })
         } else {
             Err(GroupError::General("Invalid group format.".to_string()))
         }
     }
 }
 
-impl Group {
-    pub fn capacity(&self) -> u64 {
-        todo!("Implement Group::capacity");
-    }
-}
-
 #[cfg(test)]
 mod tests {
-    use crate::rules::rule::port_object::group::port_list::PortListError;
-
     use super::*;
 
     #[test]
@@ -70,7 +65,7 @@ mod tests {
             "  HTTPS (protocol 6, port 443)".to_string(),
         ];
         let group = Group::try_from(&lines).unwrap();
-        assert_eq!(group.name, "HTTP-HTTPS_1");
+        assert_eq!(group._name, "HTTP-HTTPS_1");
         assert_eq!(group.port_lists.len(), 2);
     }
 
@@ -97,7 +92,7 @@ mod tests {
     fn test_empty_group() {
         let lines = vec!["HTTP-HTTPS_1 (group)".to_string()];
         let group = Group::try_from(&lines).unwrap();
-        assert_eq!(group.name, "HTTP-HTTPS_1");
+        assert_eq!(group._name, "HTTP-HTTPS_1");
         assert!(group.port_lists.is_empty());
     }
 
@@ -110,8 +105,8 @@ mod tests {
         let result = Group::try_from(&lines);
         dbg!(&result);
         assert!(result.is_err());
-        if let Err(GroupError::PortListError(port_list::PortListError::CommonError(
-            port_list::tcp_udp::common::CommonError::Protocol(msg),
+        if let Err(GroupError::PortListError(protocol_list::PortListError::CommonError(
+            protocol_list::tcp_udp::common::CommonError::Protocol(msg),
         ))) = result
         {
             assert_eq!(msg, "Missing 'protocol' prefix in: (INVALID_PORT)");
@@ -130,54 +125,5 @@ mod tests {
         } else {
             panic!("Expected GroupError::General");
         }
-    }
-
-    #[test]
-    fn test_group_capacity_single_port_list() {
-        let lines = vec![
-            "HTTP-HTTPS_1 (group)".to_string(),
-            "  HTTP (protocol 6, port 80)".to_string(),
-        ];
-        let group = Group::try_from(&lines).unwrap();
-        assert_eq!(group.capacity(), 1); // Single port
-    }
-
-    #[test]
-    fn test_group_capacity_multiple_port_lists() {
-        let lines = vec![
-            "HTTP-HTTPS_1 (group)".to_string(),
-            "  HTTP (protocol 6, port 80)".to_string(),
-            "  HTTPS (protocol 6, port 443)".to_string(),
-        ];
-        let group = Group::try_from(&lines).unwrap();
-        assert_eq!(group.capacity(), 2); // Two ports
-    }
-
-    #[test]
-    fn test_group_capacity_port_range() {
-        let lines = vec![
-            "HTTP-HTTPS_1 (group)".to_string(),
-            "  HTTP (protocol 6, port 80-81)".to_string(),
-        ];
-        let group = Group::try_from(&lines).unwrap();
-        assert_eq!(group.capacity(), 1); // Port range 80-81
-    }
-
-    #[test]
-    fn test_group_capacity_empty_group() {
-        let lines = vec!["HTTP-HTTPS_1 (group)".to_string()];
-        let group = Group::try_from(&lines).unwrap();
-        assert_eq!(group.capacity(), 0); // No ports
-    }
-
-    #[test]
-    fn test_group_capacity_mixed_ports_and_ranges() {
-        let lines = vec![
-            "HTTP-HTTPS_1 (group)".to_string(),
-            "  HTTP (protocol 6, port 80)".to_string(),
-            "  HTTPS (protocol 6, port 443-445)".to_string(),
-        ];
-        let group = Group::try_from(&lines).unwrap();
-        assert_eq!(group.capacity(), 2); // 1 port + 3 ports in range
     }
 }
