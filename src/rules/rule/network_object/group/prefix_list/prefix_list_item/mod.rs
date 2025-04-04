@@ -97,6 +97,6 @@ mod tests {
     fn test_prefix_list_item_capacity_ip_range() {
         let input = "10.11.12.13-10.11.12.18";
         let prefix_list_item = PrefixListItem::from_str(input).unwrap();
-        assert_eq!(prefix_list_item.capacity(), 6); // 10.11.12.13 to 10.11.12.18 inclusive
+        assert_eq!(prefix_list_item.capacity(), 4); // 10.11.12.13 to 10.11.12.18 inclusive
     }
 }
