@@ -57,7 +57,7 @@ If you are getting closer to the limit - don't panic ! It is time to start think
 
 ### Built-in optimizations to FTD
 
-1. IP range optimized to subnets inside network onjects and groups.  
+1. IP range optimized to subnets inside network objects and groups.  
    For example:  
    `192.168.0.0 - 192.168.0.5`  
    Will be optimized to two subnets: `192.168.0.0/30` and `192.168.0.4/31`  
@@ -86,14 +86,14 @@ Example: RULE my_app
   - `HTTPS`
   - `FTP`
   
-Source subnets will be opimized to a single: 192.168.168.0/24  
-Destination subnets will be opimized to a single: 10.11.12.0/23  
+Source subnets will be optimized to a single: 192.168.168.0/24  
+Destination subnets will be optimized to a single: 10.11.12.0/23  
 Destination ports will be optimized by FTD-code
    
-Number of ACE before optimiziation: 
+Number of ACE before optimization: 
 2 (src subnets) * 2 (dst subnets) * 2 (src ports) * 2 (dest ports) = 16
 
-Number of ACE after optimiziation: 
+Number of ACE after optimization: 
 1 (src subnets) * 1 (dst subnets) * 2 (src ports) * 2 (dest ports) = 4
 
 Optimization factor: 16 / 4 = 4 
