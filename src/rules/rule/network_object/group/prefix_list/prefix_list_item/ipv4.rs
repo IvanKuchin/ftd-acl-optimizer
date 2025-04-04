@@ -1,7 +1,9 @@
 use std::cmp::Ordering;
+use std::fmt::Display;
+use std::fmt::Formatter;
 use std::str::FromStr;
 
-#[derive(Debug, Eq, PartialEq)]
+#[derive(Debug, Eq, PartialEq, Clone)]
 pub struct IPv4(pub u64);
 
 #[derive(thiserror::Error, Debug)]
@@ -11,6 +13,18 @@ pub enum IPv4Error {
 
     #[error("Failed to parse IPv4 address: {0}")]
     ParseError(#[from] std::num::ParseIntError),
+}
+
+impl Display for IPv4 {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        let octets = [
+            (self.0 >> 24) as u8,
+            (self.0 >> 16) as u8,
+            (self.0 >> 8) as u8,
+            self.0 as u8,
+        ];
+        write!(f, "{}.{}.{}.{}", octets[0], octets[1], octets[2], octets[3])
+    }
 }
 
 impl FromStr for IPv4 {
@@ -56,15 +70,19 @@ impl Ord for IPv4 {
     }
 }
 
-// impl IPv4 {
-//     pub fn get_broadcast(&self, mask: u64) -> IPv4 {
-//         Self(self.0 | ((1 << (32 - mask)) - 1))
-//     }
+impl IPv4 {
+    pub fn get_broadcast(&self, mask_length: u8) -> IPv4 {
+        Self(self.0 | ((1 << (32 - mask_length)) - 1))
+    }
 
-//     pub fn get_network(&self, mask: u64) -> IPv4 {
-//         Self(self.0 & ((!0u64) << (32 - mask)))
-//     }
-// }
+    pub fn get_network(&self, mask_length: u8) -> IPv4 {
+        Self(self.0 & ((!0u64) << (32 - mask_length)))
+    }
+
+    pub fn next(&self) -> IPv4 {
+        Self(self.0 + 1)
+    }
+}
 
 #[cfg(test)]
 mod tests {

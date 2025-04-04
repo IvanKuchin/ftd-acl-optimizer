@@ -278,7 +278,7 @@ mod tests {
             "192.168.1.1-192.168.1.10".to_string(),
         ];
         let network_object = NetworkObject::try_from(&lines).unwrap();
-        assert_eq!(network_object.capacity(), 10); // 10 IPs in the range
+        assert_eq!(network_object.capacity(), 5);
     }
 
     #[test]
@@ -296,7 +296,7 @@ mod tests {
             "192.168.1.1-192.168.1.10".to_string(),
         ];
         let network_object = NetworkObject::try_from(&lines).unwrap();
-        assert_eq!(network_object.capacity(), 1 + 10);
+        assert_eq!(network_object.capacity(), 1 + 5);
     }
 
     #[test]

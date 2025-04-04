@@ -183,7 +183,7 @@ mod tests {
     fn test_capacity_with_ip_range() {
         let line = "Range (192.168.1.1-192.168.1.10)";
         let prefix_list = PrefixList::from_str(line).unwrap();
-        assert_eq!(prefix_list.capacity(), 10); // 10 IPs in the range
+        assert_eq!(prefix_list.capacity(), 5);
     }
 
     #[test]
@@ -197,6 +197,6 @@ mod tests {
     fn test_capacity_mixed_prefixes_and_ranges() {
         let line = "Mixed (10.0.0.0/8, 192.168.1.1-192.168.1.10)";
         let prefix_list = PrefixList::from_str(line).unwrap();
-        assert_eq!(prefix_list.capacity(), 1 + 10); // 1 + 10
+        assert_eq!(prefix_list.capacity(), 1 + 5); // 1 + 10
     }
 }

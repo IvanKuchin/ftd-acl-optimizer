@@ -6,7 +6,13 @@ use super::ipv4::{IPv4, IPv4Error};
 pub struct Prefix {
     name: String,
     start: IPv4,
-    mask_length: i32,
+    mask_length: u8,
+}
+
+pub struct Builder {
+    name: String,
+    start: IPv4,
+    mask_length: u8,
 }
 
 #[derive(thiserror::Error, Debug)]
@@ -28,7 +34,7 @@ impl FromStr for Prefix {
         match parts.len() {
             2 => {
                 let start = parts[0].parse::<IPv4>()?;
-                let prefix_length: i32 = parts[1].parse()?;
+                let prefix_length: u8 = parts[1].parse()?;
                 if !(1..=32).contains(&prefix_length) {
                     return Err(PrefixError::General(
                         format!(
@@ -72,6 +78,24 @@ impl Prefix {
     // this method is used in the test
     pub fn get_name(&self) -> &str {
         &self.name
+    }
+}
+
+impl Builder {
+    pub fn new(name: String, start: IPv4, mask_length: u8) -> Self {
+        Self {
+            name,
+            start,
+            mask_length,
+        }
+    }
+
+    pub fn build(self) -> Prefix {
+        Prefix {
+            name: self.name,
+            start: self.start,
+            mask_length: self.mask_length,
+        }
     }
 }
 
