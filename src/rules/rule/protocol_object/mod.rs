@@ -128,59 +128,60 @@ fn unique_l3_items(port_lists: Vec<&ProtocolList>) -> Vec<&ProtocolList> {
     unique_items
 }
 
-fn optimize_l4_items(port_lists: Vec<&ProtocolList>) -> Vec<ProtocolListOptimized> {
-    let mut port_lists = port_lists;
-    port_lists.sort_by_key(|item| ((item.get_protocol() as u32) << 16) + item.get_ports().0 as u32);
+fn optimize_l4_items(to_optimize: Vec<&ProtocolList>) -> Vec<ProtocolListOptimized> {
+    let mut to_optimize = to_optimize;
+    to_optimize
+        .sort_by_key(|item| ((item.get_protocol() as u32) << 16) + item.get_ports().0 as u32);
 
-    let mut optimized_port_lists = vec![];
+    let mut result = vec![];
 
-    if port_lists.is_empty() {
-        return optimized_port_lists;
+    if to_optimize.is_empty() {
+        return result;
     }
 
-    let mut optimized_port_list = ProtocolListOptimized::from(port_lists[0]);
-    let mut current_port_list = port_lists[0].clone();
+    let mut optimized_items = ProtocolListOptimized::from(to_optimize[0]);
+    let mut current_item = to_optimize[0].clone();
 
-    for next_port_list in port_lists.into_iter().skip(1) {
-        if current_port_list.get_protocol() == next_port_list.get_protocol() {
-            let (curr_start, curr_end) = current_port_list.get_ports();
-            let (next_start, next_end) = next_port_list.get_ports();
+    for next_item in to_optimize.into_iter().skip(1) {
+        if current_item.get_protocol() == next_item.get_protocol() {
+            let (curr_start, curr_end) = current_item.get_ports();
+            let (next_start, next_end) = next_item.get_ports();
 
             if next_start as u32 <= curr_end as u32 + 1 {
                 let verb = description_verb(curr_end, next_start, next_end);
                 let new_name = format!(
                     "{} {verb} {}",
-                    current_port_list.get_name(),
-                    next_port_list.get_name()
+                    current_item.get_name(),
+                    next_item.get_name()
                 );
 
                 let tcp_udp_obj = tcp_udp::Builder::new()
                     .name(new_name.clone())
-                    .protocol(current_port_list.get_protocol())
+                    .protocol(current_item.get_protocol())
                     .start(curr_start)
                     .end(max(curr_end, next_end))
                     .build();
-                current_port_list = protocol_list::ProtocolList::TcpUdp(tcp_udp_obj);
+                current_item = ProtocolList::TcpUdp(tcp_udp_obj);
 
-                optimized_port_list.append(next_port_list);
-                optimized_port_list.set_name(new_name);
+                optimized_items.append(next_item);
+                optimized_items.set_name(new_name);
             } else {
-                current_port_list = next_port_list.clone();
+                current_item = next_item.clone();
 
-                optimized_port_lists.push(optimized_port_list);
-                optimized_port_list = ProtocolListOptimized::from(next_port_list);
+                result.push(optimized_items);
+                optimized_items = ProtocolListOptimized::from(next_item);
             }
         } else {
-            current_port_list = next_port_list.clone();
+            current_item = next_item.clone();
 
-            optimized_port_lists.push(optimized_port_list);
-            optimized_port_list = ProtocolListOptimized::from(next_port_list);
+            result.push(optimized_items);
+            optimized_items = ProtocolListOptimized::from(next_item);
         }
     }
 
-    optimized_port_lists.push(optimized_port_list);
+    result.push(optimized_items);
 
-    optimized_port_lists
+    result
 }
 
 fn description_verb(curr_end: u16, next_start: u16, next_end: u16) -> String {
