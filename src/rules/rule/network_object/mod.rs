@@ -8,16 +8,16 @@ use group::Group;
 
 pub mod utilities;
 
+mod network_object_item;
+use network_object_item::NetworkObjectItem;
+
+mod network_object_optimized;
+use network_object_optimized::NetworkObjectOptimized;
+
 #[derive(Debug)]
 pub struct NetworkObject {
     name: String,
     items: Vec<NetworkObjectItem>,
-}
-
-#[derive(Debug)]
-pub enum NetworkObjectItem {
-    ObjectGroup(Group),
-    PrefixList(PrefixList),
 }
 
 #[derive(thiserror::Error, Debug)]
@@ -89,14 +89,17 @@ impl NetworkObject {
     pub fn capacity(&self) -> u64 {
         self.items.iter().map(|item| item.capacity()).sum()
     }
-}
 
-impl NetworkObjectItem {
-    pub fn capacity(&self) -> u64 {
-        match self {
-            NetworkObjectItem::ObjectGroup(group) => group.capacity(),
-            NetworkObjectItem::PrefixList(prefix_list) => prefix_list.capacity(),
-        }
+    pub fn optimize(&self) -> Vec<NetworkObjectOptimized> {
+        let items: Vec<&PrefixList> = self
+            .items
+            .iter()
+            .flat_map(|item| item.collect_objects())
+            .collect();
+
+        todo!("Optimize the network object items");
+
+        vec![]
     }
 }
 

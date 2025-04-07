@@ -3,7 +3,7 @@ use std::str::FromStr;
 mod prefix_list_item;
 use prefix_list_item::PrefixListItem;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct PrefixList {
     name: String,
     items: Vec<PrefixListItem>,
@@ -66,6 +66,10 @@ impl FromStr for PrefixList {
 }
 
 impl PrefixList {
+    pub fn get_name(&self) -> &str {
+        &self.name
+    }
+
     pub fn capacity(&self) -> u64 {
         self.items.iter().map(|p| p.capacity()).sum()
     }

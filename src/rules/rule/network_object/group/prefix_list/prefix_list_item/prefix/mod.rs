@@ -2,7 +2,7 @@ use std::str::FromStr;
 
 use super::ipv4::{IPv4, IPv4Error};
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Prefix {
     name: String,
     start: IPv4,

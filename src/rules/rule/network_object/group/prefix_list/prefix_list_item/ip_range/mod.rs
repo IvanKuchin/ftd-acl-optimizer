@@ -6,7 +6,7 @@ use super::{
     prefix::Prefix,
 };
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct IPRange {
     name: String,
     start: IPv4,

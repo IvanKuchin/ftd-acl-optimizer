@@ -66,13 +66,13 @@ impl ProtocolObject {
     /// Optimizes all PortLists inside the PortObject.
     /// Those optimizations automatically performed by FTD
     pub fn optimize(&self) -> Vec<ProtocolListOptimized> {
-        let port_lists: Vec<&ProtocolList> = self
+        let protocol_lists: Vec<&ProtocolList> = self
             .items
             .iter()
             .flat_map(|item| item.collect_objects())
             .collect();
 
-        let l3_items: Vec<&ProtocolList> = port_lists
+        let l3_items: Vec<&ProtocolList> = protocol_lists
             .iter()
             .filter(|port_list| !port_list.is_l4())
             .copied()
@@ -84,7 +84,7 @@ impl ProtocolObject {
             .map(|port_list| ProtocolListOptimized::from(port_list))
             .collect();
 
-        let l4_items: Vec<&ProtocolList> = port_lists
+        let l4_items: Vec<&ProtocolList> = protocol_lists
             .iter()
             .filter(|port_list| port_list.is_l4())
             .copied()

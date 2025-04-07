@@ -8,7 +8,7 @@ use ip_range::IPRange;
 
 mod ipv4;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum PrefixListItem {
     Prefix(Prefix),
     IPRange(IPRange),
