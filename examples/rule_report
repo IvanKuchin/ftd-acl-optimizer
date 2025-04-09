@@ -246,8 +246,7 @@ Object missing: 00000000-0000-0ed3-0000-042950273145
                               OBJ-10.148.0.0_16 (10.148.0.0/16)
                               OBJ-10.168.0.0_16 (10.168.0.0/16)
                               OBJ-10.180.0.0_16 (10.180.0.0/16)
-    Destination Networks  : IPv4-RFC1918 (10.0.0.0/8, 172.16.0.0/12,
- 192.168.0.0/16)
+    Destination Networks  : IPv4-RFC1918 (10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16)
     Destination Ports     : HTTPS (protocol 6, port 443)
     Logging Configuration    
     DC                    : Enabled
