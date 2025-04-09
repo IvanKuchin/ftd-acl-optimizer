@@ -91,11 +91,11 @@ impl NetworkObject {
     }
 
     pub fn optimize(&self) -> Vec<NetworkObjectOptimized> {
-        let items: Vec<&PrefixList> = self
+        let items = self
             .items
             .iter()
             .flat_map(|item| item.collect_objects())
-            .collect();
+            .collect::<Vec<_>>();
 
         todo!("Optimize the network object items");
 

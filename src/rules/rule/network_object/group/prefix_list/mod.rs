@@ -1,6 +1,6 @@
 use std::str::FromStr;
 
-mod prefix_list_item;
+pub mod prefix_list_item;
 use prefix_list_item::PrefixListItem;
 
 #[derive(Debug, Clone)]
@@ -70,6 +70,9 @@ impl PrefixList {
         &self.name
     }
 
+    /// Returns the number of subnets in the list.
+    /// This function does NOT perform optimizations (overlaps, shadowing, merging).
+    /// For example: Test-prefix (192.168.0.0/24, 192.168.0.0/25) will return 2.
     pub fn capacity(&self) -> u64 {
         self.items.iter().map(|p| p.capacity()).sum()
     }
@@ -184,10 +187,17 @@ mod tests {
     }
 
     #[test]
-    fn test_capacity_with_ip_range() {
+    fn test_capacity_with_ip_range_1() {
         let line = "Range (192.168.1.1-192.168.1.10)";
         let prefix_list = PrefixList::from_str(line).unwrap();
         assert_eq!(prefix_list.capacity(), 5);
+    }
+
+    #[test]
+    fn test_capacity_with_ip_range_2() {
+        let line = "Range (192.168.1.1-192.168.1.10, 192.168.1.1-192.168.1.10)";
+        let prefix_list = PrefixList::from_str(line).unwrap();
+        assert_eq!(prefix_list.capacity(), 10);
     }
 
     #[test]
