@@ -11,9 +11,11 @@ pub struct PrefixList {
 
 #[derive(thiserror::Error, Debug)]
 pub enum PrefixListError {
-    #[error("Fail to parse prefix list: {0}")]
+    #[error("(General) fail to parse prefix list1: {0}")]
     General(String),
-    #[error("Fail to parse prefix list: {0}")]
+    #[error("(GeneralNoColon) fail to parse prefix list2 {0}")]
+    GeneralNoColon(String),
+    #[error("(PrefixListItemError) Fail to parse prefix list: {0}")]
     PrefixListItemError(#[from] prefix_list_item::PrefixListItemError),
 }
 
@@ -32,16 +34,30 @@ impl FromStr for PrefixList {
         if line.contains("(") && line.contains(")") {
             let name = line.split("(").collect::<Vec<&str>>()[0].trim().to_string();
 
-            let prefix_str = line.split("(").collect::<Vec<&str>>()[1]
+            let prefix_str = line
+                .split("(")
+                .nth(1)
+                .ok_or(PrefixListError::General(format!(
+                    "Invalid prefix list format ({}), open parentesis doesn't split prefix in two pieces.",
+                    line
+                )))?
                 .split(")")
-                .collect::<Vec<&str>>()[0]
+                .next()
+                .ok_or(PrefixListError::General(format!(
+                    "Invalid prefix list format ({}), close parentesis doesn't split prefix in two pieces.",
+                    line
+                )))?
                 .trim()
                 .to_string();
 
             let items: Vec<_> = prefix_str
                 .split(",")
-                .map(|s| s.trim().parse::<PrefixListItem>())
-                .collect::<Result<_, prefix_list_item::PrefixListItemError>>()?;
+                .map(|s| {
+                    s.trim()
+                        .parse::<PrefixListItem>()
+                        .map_err(|e| PrefixListError::GeneralNoColon(format!("({}) :{}", line, e)))
+                })
+                .collect::<Result<_, _>>()?;
 
             Ok(Self { name, items })
         } else if !line.contains("(") && !line.contains(")") {
@@ -49,10 +65,13 @@ impl FromStr for PrefixList {
             let items = vec![line
                 .trim()
                 .parse::<PrefixListItem>()
-                .map_err(|e| PrefixListError::General(e.to_string()))?];
+                .map_err(|e| PrefixListError::GeneralNoColon(format!("({}) :{}", line, e)))?];
 
             if items.is_empty() {
-                return Err(PrefixListError::General("Empty prefix list.".to_string()));
+                return Err(PrefixListError::General(format!(
+                    "Empty prefix list ({}).",
+                    line
+                )));
             }
 
             Ok(Self { name, items })
@@ -131,6 +150,29 @@ mod tests {
         assert_eq!(
             format!("{}", result.unwrap_err()), 
             "Fail to parse prefix list: Failed to parse prefix list item: Fail to parse prefix: Invalid prefix format (expected IPv4 or Prefix/len) in RFC1918 10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16."
+        );
+    }
+
+    #[test]
+    fn test_invalid_prefix_list_open_parenthesis() {
+        let line = "RFC1918 (";
+        let result = PrefixList::from_str(line);
+        assert!(result.is_err());
+        assert_eq!(
+            format!("{}", result.unwrap_err()),
+            "Fail to parse prefix list: Invalid prefix list format RFC1918 ("
+        );
+    }
+
+    #[test]
+    fn test_invalid_prefix_list_close_parenthesis() {
+        let line = "RFC1918 (  )10.0.0.0/32";
+        let result = PrefixList::from_str(line);
+        dbg!(&result);
+        assert!(result.is_err());
+        assert_eq!(
+            format!("{}", result.unwrap_err()),
+            "Fail to parse prefix list: Invalid prefix list format RFC1918 ("
         );
     }
 

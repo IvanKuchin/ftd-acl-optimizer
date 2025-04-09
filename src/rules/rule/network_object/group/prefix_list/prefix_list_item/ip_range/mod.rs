@@ -25,9 +25,33 @@ pub enum IPRangeError {
 impl FromStr for IPRange {
     type Err = IPRangeError;
 
+    // Example line:
+    // 10.0.0.0/8
+    // or
+    // 10.11.12.13-10.11.12.18
+    fn from_str(line: &str) -> Result<Self, Self::Err> {
+        if line.contains("-") {
+            IPRange::from_str_ip_range(line)
+        } else {
+            IPRange::from_str_ip_range(line)
+        }
+    }
+}
+
+impl IPRange {
+    pub fn capacity(&self) -> u64 {
+        let subnets = split_ip_range_into_prefixes(&self.start, &self.end);
+
+        subnets.len() as u64
+    }
+
+    pub fn get_name(&self) -> &str {
+        &self.name
+    }
+
     // String example:
     // 10.18.46.62-10.18.46.69
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
+    fn from_str_ip_range(s: &str) -> Result<Self, IPRangeError> {
         let name = String::from(s);
         let parts: Vec<_> = s.split("-").collect();
         if parts.len() != 2 {
@@ -54,19 +78,6 @@ impl FromStr for IPRange {
         }
 
         Ok(IPRange { name, start, end })
-    }
-}
-
-impl IPRange {
-    pub fn capacity(&self) -> u64 {
-        let subnets = split_ip_range_into_prefixes(&self.start, &self.end);
-
-        subnets.len() as u64
-    }
-
-    #[allow(dead_code)]
-    pub fn get_name(&self) -> &str {
-        &self.name
     }
 }
 
