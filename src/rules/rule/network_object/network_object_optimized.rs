@@ -8,10 +8,10 @@ pub struct PrefixListItemOptimized {
 }
 
 impl PrefixListItemOptimized {
-    pub fn from(network_object: &PrefixListItem) -> Self {
+    pub fn from(prefix_list_item: &PrefixListItem) -> Self {
         PrefixListItemOptimized {
-            name: network_object.get_name().to_string(),
-            items: vec![network_object.clone()],
+            name: prefix_list_item.get_name().to_string(),
+            items: vec![prefix_list_item.clone()],
         }
     }
 
