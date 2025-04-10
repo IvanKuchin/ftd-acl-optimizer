@@ -1,19 +1,21 @@
-use super::network_object_item::NetworkObjectItem;
+use super::{
+    group::prefix_list::prefix_list_item::PrefixListItem, network_object_item::NetworkObjectItem,
+};
 
-pub struct NetworkObjectOptimized {
+pub struct PrefixListItemOptimized {
     name: String,
-    items: Vec<NetworkObjectItem>,
+    items: Vec<PrefixListItem>,
 }
 
-impl NetworkObjectOptimized {
-    pub fn from(network_object: &NetworkObjectItem) -> Self {
-        NetworkObjectOptimized {
+impl PrefixListItemOptimized {
+    pub fn from(network_object: &PrefixListItem) -> Self {
+        PrefixListItemOptimized {
             name: network_object.get_name().to_string(),
             items: vec![network_object.clone()],
         }
     }
 
-    pub fn append(&mut self, network_object: &NetworkObjectItem) {
+    pub fn append(&mut self, network_object: &PrefixListItem) {
         self.items.push(network_object.clone());
     }
 

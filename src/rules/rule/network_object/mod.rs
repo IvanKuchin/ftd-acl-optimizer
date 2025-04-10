@@ -12,7 +12,7 @@ mod network_object_item;
 use network_object_item::NetworkObjectItem;
 
 mod network_object_optimized;
-use network_object_optimized::NetworkObjectOptimized;
+use network_object_optimized::PrefixListItemOptimized;
 
 #[derive(Debug)]
 pub struct NetworkObject {
@@ -90,16 +90,15 @@ impl NetworkObject {
         self.items.iter().map(|item| item.capacity()).sum()
     }
 
-    pub fn optimize(&self) -> Vec<NetworkObjectOptimized> {
+    pub fn optimize(&self) -> Vec<PrefixListItemOptimized> {
         let items = self
             .items
             .iter()
-            .flat_map(|item| item.collect_objects())
+            .flat_map(|net_obj| net_obj.get_prefix_lists())
+            .flat_map(|prefix_list| prefix_list.get_items())
             .collect::<Vec<_>>();
 
         todo!("Optimize the network object items");
-
-        vec![]
     }
 }
 

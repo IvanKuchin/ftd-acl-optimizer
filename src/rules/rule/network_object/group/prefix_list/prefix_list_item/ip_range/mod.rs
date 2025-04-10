@@ -64,7 +64,6 @@ impl IPRange {
         subnets.len() as u64
     }
 
-    #[allow(dead_code)]
     pub fn get_name(&self) -> &str {
         &self.name
     }

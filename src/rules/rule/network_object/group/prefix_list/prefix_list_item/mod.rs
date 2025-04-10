@@ -50,6 +50,13 @@ impl PrefixListItem {
             PrefixListItem::IPRange(ip_range) => ip_range.capacity(),
         }
     }
+
+    pub fn get_name(&self) -> &str {
+        match self {
+            PrefixListItem::Prefix(prefix) => prefix.get_name(),
+            PrefixListItem::IPRange(ip_range) => ip_range.get_name(),
+        }
+    }
 }
 #[cfg(test)]
 mod tests {

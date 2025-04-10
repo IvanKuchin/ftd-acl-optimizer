@@ -74,8 +74,6 @@ impl Prefix {
         1
     }
 
-    #[allow(dead_code)]
-    // this method is used in the test
     pub fn get_name(&self) -> &str {
         &self.name
     }

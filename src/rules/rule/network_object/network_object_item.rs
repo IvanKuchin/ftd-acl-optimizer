@@ -22,7 +22,7 @@ impl NetworkObjectItem {
         }
     }
 
-    pub fn collect_objects(&self) -> Vec<&PrefixList> {
+    pub fn get_prefix_lists(&self) -> Vec<&PrefixList> {
         match self {
             NetworkObjectItem::ObjectGroup(group) => group.get_prefix_lists().iter().collect(),
             NetworkObjectItem::PrefixList(prefix_list) => vec![prefix_list],
