@@ -2,11 +2,18 @@ use std::str::FromStr;
 
 use super::ipv4::{IPv4, IPv4Error};
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Prefix {
     name: String,
     start: IPv4,
-    mask_length: i32,
+    mask_length: u8,
+    end: IPv4,
+}
+
+pub struct Builder {
+    name: String,
+    start: IPv4,
+    mask_length: u8,
 }
 
 #[derive(thiserror::Error, Debug)]
@@ -28,8 +35,8 @@ impl FromStr for Prefix {
         match parts.len() {
             2 => {
                 let start = parts[0].parse::<IPv4>()?;
-                let prefix_length: i32 = parts[1].parse()?;
-                if !(1..=32).contains(&prefix_length) {
+                let mask_length: u8 = parts[1].parse()?;
+                if !(1..=32).contains(&mask_length) {
                     return Err(PrefixError::General(
                         format!(
                             "Invalid prefix mask length (expected from 1 to 32) in {}.",
@@ -38,18 +45,23 @@ impl FromStr for Prefix {
                         .to_string(),
                     ));
                 }
+                let end = start.get_broadcast(mask_length);
                 Ok(Prefix {
                     name,
                     start,
-                    mask_length: prefix_length,
+                    mask_length,
+                    end,
                 })
             }
             1 => {
                 let start = parts[0].parse::<IPv4>()?;
+                let mask_length = 32;
+                let end = start.get_broadcast(mask_length);
                 Ok(Prefix {
                     name,
                     start,
-                    mask_length: 32,
+                    mask_length,
+                    end,
                 })
             }
             _ => Err(PrefixError::General(
@@ -68,10 +80,36 @@ impl Prefix {
         1
     }
 
-    #[allow(dead_code)]
-    // this method is used in the test
     pub fn get_name(&self) -> &str {
         &self.name
+    }
+
+    pub fn start_ip(&self) -> &IPv4 {
+        &self.start
+    }
+
+    pub fn end_ip(&self) -> &IPv4 {
+        &self.end
+    }
+}
+
+impl Builder {
+    pub fn new(name: String, start: IPv4, mask_length: u8) -> Self {
+        Self {
+            name,
+            start,
+            mask_length,
+        }
+    }
+
+    pub fn build(self) -> Prefix {
+        let end = self.start.get_broadcast(self.mask_length);
+        Prefix {
+            name: self.name,
+            start: self.start,
+            mask_length: self.mask_length,
+            end,
+        }
     }
 }
 

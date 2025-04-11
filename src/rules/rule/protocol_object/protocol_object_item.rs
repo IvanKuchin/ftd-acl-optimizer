@@ -1,5 +1,5 @@
-use super::*;
-use group::Group;
+use super::group::protocol_list::ProtocolList;
+use super::group::Group;
 
 /// PortObjectItem is either a PortList or a Group
 #[derive(Debug)]
