@@ -3,10 +3,11 @@ use std::str::FromStr;
 mod prefix;
 use prefix::Prefix;
 
-mod ip_range;
+pub mod ip_range;
 use ip_range::IPRange;
 
 mod ipv4;
+use ipv4::IPv4;
 
 #[derive(Debug, Clone)]
 pub enum PrefixListItem {
@@ -55,6 +56,20 @@ impl PrefixListItem {
         match self {
             PrefixListItem::Prefix(prefix) => prefix.get_name(),
             PrefixListItem::IPRange(ip_range) => ip_range.get_name(),
+        }
+    }
+
+    pub fn start_ip(&self) -> &IPv4 {
+        match self {
+            PrefixListItem::Prefix(prefix) => prefix.start_ip(),
+            PrefixListItem::IPRange(ip_range) => ip_range.start_ip(),
+        }
+    }
+
+    pub fn end_ip(&self) -> &IPv4 {
+        match self {
+            PrefixListItem::Prefix(prefix) => prefix.end_ip(),
+            PrefixListItem::IPRange(ip_range) => ip_range.end_ip(),
         }
     }
 }

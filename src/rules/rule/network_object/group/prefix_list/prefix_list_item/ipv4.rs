@@ -54,6 +54,12 @@ impl FromStr for IPv4 {
     }
 }
 
+impl From<&IPv4> for u32 {
+    fn from(me: &IPv4) -> Self {
+        me.0 as u32
+    }
+}
+
 use core::cmp::PartialOrd;
 
 impl PartialOrd for IPv4 {

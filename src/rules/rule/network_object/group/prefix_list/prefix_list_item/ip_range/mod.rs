@@ -58,6 +58,13 @@ impl FromStr for IPRange {
 }
 
 impl IPRange {
+    pub fn new(name: String, start: IPv4, end: IPv4) -> Self {
+        if start > end {
+            panic!("Start IP must be less than or equal to end IP in {}.", name);
+        }
+        IPRange { name, start, end }
+    }
+
     pub fn capacity(&self) -> u64 {
         let subnets = split_ip_range_into_prefixes(&self.start, &self.end);
 
@@ -66,6 +73,14 @@ impl IPRange {
 
     pub fn get_name(&self) -> &str {
         &self.name
+    }
+
+    pub fn start_ip(&self) -> &IPv4 {
+        &self.start
+    }
+
+    pub fn end_ip(&self) -> &IPv4 {
+        &self.end
     }
 }
 

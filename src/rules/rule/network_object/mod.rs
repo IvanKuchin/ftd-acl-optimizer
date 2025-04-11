@@ -14,6 +14,8 @@ use network_object_item::NetworkObjectItem;
 mod network_object_optimized;
 use network_object_optimized::PrefixListItemOptimized;
 
+use group::prefix_list::prefix_list_item::PrefixListItem;
+
 #[derive(Debug)]
 pub struct NetworkObject {
     name: String,
@@ -98,8 +100,52 @@ impl NetworkObject {
             .flat_map(|prefix_list| prefix_list.get_items())
             .collect::<Vec<_>>();
 
-        todo!("Optimize the network object items");
+        let merged_items = optimize_prefixes(items);
+
+        todo!("Add OptimizedOvjext thea can calculate the capacity of the optimized prefix lists");
     }
+}
+
+fn optimize_prefixes(items: Vec<&PrefixListItem>) -> Vec<PrefixListItemOptimized> {
+    let mut sorted = items;
+    sorted.sort_by_key(|item| item.start_ip());
+
+    let mut result = vec![];
+
+    if sorted.is_empty() {
+        return result;
+    }
+
+    let mut current_item = sorted[0].clone();
+    let mut optimized_item = PrefixListItemOptimized::from(&current_item);
+
+    for next_item in sorted.into_iter().skip(1) {
+        let (_, curr_end) = (current_item.start_ip(), current_item.end_ip());
+        let (next_start, next_end) = (next_item.start_ip(), next_item.end_ip());
+
+        if next_start <= curr_end {
+            use super::protocol_object::description;
+            let verb = description::verb(curr_end.into(), next_start.into(), next_end.into());
+
+            let new_name = format!(
+                "{} {verb} {}",
+                current_item.get_name(),
+                next_item.get_name()
+            );
+
+            optimized_item.set_name(new_name);
+            optimized_item.append(next_item);
+        } else {
+            current_item = next_item.clone();
+
+            result.push(optimized_item);
+            optimized_item = PrefixListItemOptimized::from(next_item);
+        }
+    }
+
+    result.push(optimized_item);
+
+    result
 }
 
 #[cfg(test)]
