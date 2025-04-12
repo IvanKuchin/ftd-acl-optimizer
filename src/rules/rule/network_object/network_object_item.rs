@@ -8,13 +8,6 @@ pub enum NetworkObjectItem {
 }
 
 impl NetworkObjectItem {
-    pub fn get_name(&self) -> &str {
-        match self {
-            NetworkObjectItem::ObjectGroup(group) => group.get_name(),
-            NetworkObjectItem::PrefixList(prefix_list) => prefix_list.get_name(),
-        }
-    }
-
     pub fn capacity(&self) -> u64 {
         match self {
             NetworkObjectItem::ObjectGroup(group) => group.capacity(),
