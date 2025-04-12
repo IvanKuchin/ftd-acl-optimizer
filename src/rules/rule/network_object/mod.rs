@@ -11,15 +11,19 @@ pub mod utilities;
 mod network_object_item;
 use network_object_item::NetworkObjectItem;
 
-mod network_object_optimized;
-use network_object_optimized::PrefixListItemOptimized;
+mod prefix_list_item_optimized;
+use prefix_list_item_optimized::PrefixListItemOptimized;
 
 use group::prefix_list::prefix_list_item::PrefixListItem;
+
+mod network_object_optimized;
+use network_object_optimized::NetworkObjectOptimized;
 
 #[derive(Debug)]
 pub struct NetworkObject {
     name: String,
     items: Vec<NetworkObjectItem>,
+    optimized: Option<NetworkObjectOptimized>,
 }
 
 #[derive(thiserror::Error, Debug)]
@@ -65,7 +69,11 @@ impl TryFrom<&Vec<String>> for NetworkObject {
             idx += obj_lines_count;
         }
 
-        Ok(NetworkObject { name, items })
+        Ok(NetworkObject {
+            name,
+            items,
+            optimized: None,
+        })
     }
 }
 
@@ -92,7 +100,7 @@ impl NetworkObject {
         self.items.iter().map(|item| item.capacity()).sum()
     }
 
-    pub fn optimize(&self) -> Vec<PrefixListItemOptimized> {
+    pub fn optimize(&mut self) -> Result<&NetworkObjectOptimized, NetworkObjectError> {
         let items = self
             .items
             .iter()
@@ -101,8 +109,13 @@ impl NetworkObject {
             .collect::<Vec<_>>();
 
         let merged_items = optimize_prefixes(items);
+        self.optimized = Some(
+            network_object_optimized::Builder::new(merged_items)
+                .with_name(self.name.clone())
+                .build(),
+        );
 
-        todo!("Add OptimizedOvjext thea can calculate the capacity of the optimized prefix lists");
+        Ok(self.optimized.as_ref().unwrap())
     }
 }
 
@@ -123,7 +136,7 @@ fn optimize_prefixes(items: Vec<&PrefixListItem>) -> Vec<PrefixListItemOptimized
         let (_, curr_end) = (current_item.start_ip(), current_item.end_ip());
         let (next_start, next_end) = (next_item.start_ip(), next_item.end_ip());
 
-        if next_start <= curr_end {
+        if next_start <= &curr_end.next() {
             use super::protocol_object::description;
             let verb = description::verb(curr_end.into(), next_start.into(), next_end.into());
 
@@ -374,4 +387,97 @@ mod tests {
         let network_object_item = NetworkObjectItem::ObjectGroup(group);
         assert_eq!(network_object_item.capacity(), 1 + 1 + 1);
     }
+
+    #[test]
+    fn test_network_object_item_optimized_capacity_1() {
+        let lines = vec![
+            "Source Networks       : Internal (group)".to_string(),
+            "192.168.1.11-192.168.1.255".to_string(),
+            "192.168.1.0-192.168.1.10".to_string(),
+        ];
+        let mut network_object = NetworkObject::try_from(&lines).unwrap();
+        assert_eq!(network_object.capacity(), 9);
+        let optimized = network_object.optimize().unwrap();
+        assert_eq!(optimized.capacity(), 1);
+    }
+
+    #[test]
+    fn test_network_object_item_optimized_capacity_2() {
+        let lines = vec![
+            "Source Networks       : Internal (group)".to_string(),
+            "192.168.1.11-192.168.1.254".to_string(),
+            "192.168.1.0-192.168.1.255".to_string(),
+        ];
+        let mut network_object = NetworkObject::try_from(&lines).unwrap();
+        assert_eq!(network_object.capacity(), 13);
+        let optimized = network_object.optimize().unwrap();
+        assert_eq!(optimized.capacity(), 1);
+    }
+
+    #[test]
+    fn test_network_object_item_optimized_capacity_3() {
+        let lines = vec![
+            "Source Networks       : Internal (group)".to_string(),
+            "192.168.0.11-192.168.1.255".to_string(),
+            "192.168.0.0-192.168.1.63".to_string(),
+        ];
+        let mut network_object = NetworkObject::try_from(&lines).unwrap();
+        assert_eq!(network_object.capacity(), 9);
+        let optimized = network_object.optimize().unwrap();
+        assert_eq!(optimized.capacity(), 1);
+    }
+
+    #[test]
+    fn test_network_object_item_optimized_capacity_4() {
+        let lines = vec![
+            "Source Networks       : Internal (group)".to_string(),
+            "  192.168.0.0-192.168.0.0".to_string(),
+            "192.168.0.0-192.168.0.0".to_string(),
+        ];
+        let mut network_object = NetworkObject::try_from(&lines).unwrap();
+        assert_eq!(network_object.capacity(), 2);
+        let optimized = network_object.optimize().unwrap();
+        assert_eq!(optimized.capacity(), 1);
+    }
+
+    #[test]
+    fn test_network_object_item_optimized_capacity_5() {
+        let lines = vec![
+            "Source Networks       : Internal (group)".to_string(),
+            "  192.168.0.0-192.168.0.0".to_string(),
+            "  0.0.0.0-0.0.0.0".to_string(),
+            "192.168.0.0-192.168.0.0".to_string(),
+            "0.0.0.0-0.0.0.0".to_string(),
+        ];
+        let mut network_object = NetworkObject::try_from(&lines).unwrap();
+        assert_eq!(network_object.capacity(), 4);
+        let optimized = network_object.optimize().unwrap();
+        assert_eq!(optimized.capacity(), 2);
+    }
+
+    #[test]
+    fn test_network_object_item_optimized_capacity_6() {
+        let lines = vec![
+            "Source Networks       : Internal (group)".to_string(),
+            "  255.255.255.255-255.255.255.255".to_string(),
+            "255.255.255.255-255.255.255.255".to_string(),
+        ];
+        let mut network_object = NetworkObject::try_from(&lines).unwrap();
+        assert_eq!(network_object.capacity(), 2);
+        let optimized = network_object.optimize().unwrap();
+        assert_eq!(optimized.capacity(), 1);
+    }
+
+    #[test]
+    fn test_network_object_item_optimized_capacity_7() {
+        let lines = vec![
+            "Source Networks       : Internal (group)".to_string(),
+        ];
+        let mut network_object = NetworkObject::try_from(&lines).unwrap();
+        assert_eq!(network_object.capacity(), 0);
+        let optimized = network_object.optimize().unwrap();
+        assert_eq!(optimized.capacity(), 0);
+    }
+
+
 }
