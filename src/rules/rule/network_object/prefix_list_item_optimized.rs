@@ -29,8 +29,8 @@ impl PrefixListItemOptimized {
     }
 
     pub fn capacity(&self) -> u64 {
-        let start_ip = self.items.iter().map(|item| item.start_ip()).min().unwrap_or_else(|| panic!("Logic error: PrefixListItemOptimized ({}) should have at least one PrefixListItem, if this error is triggered, parsing logic must be fixed. Currentlt the only way to craft obj is from-trait which accepts correct object", self.name));
-        let end_ip = self.items.iter().map(|item| item.end_ip()).max().unwrap_or_else(|| panic!("Logic error: PrefixListItemOptimized ({}) should have at least one PrefixListItem, if this error is triggered, parsing logic must be fixed. Currentlt the only way to craft obj is from-trait which accepts correct object", self.name));
+        let start_ip = self.items.iter().map(|item| item.start_ip()).min().unwrap_or_else(|| panic!("Logic error: PrefixListItemOptimized ({}) should have at least one PrefixListItem, if this error is triggered, parsing logic must be fixed. Currently the only way to craft obj is from-trait which accepts correct object", self.name));
+        let end_ip = self.items.iter().map(|item| item.end_ip()).max().unwrap_or_else(|| panic!("Logic error: PrefixListItemOptimized ({}) should have at least one PrefixListItem, if this error is triggered, parsing logic must be fixed. Currently the only way to craft obj is from-trait which accepts correct object", self.name));
 
         let ip_range = IPRange::new(self.name.clone(), start_ip.clone(), end_ip.clone());
 

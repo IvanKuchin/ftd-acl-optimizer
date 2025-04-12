@@ -38,13 +38,13 @@ impl FromStr for PrefixList {
                 .split("(")
                 .nth(1)
                 .ok_or(PrefixListError::General(format!(
-                    "Invalid prefix list format ({}), open parentesis doesn't split prefix in two pieces.",
+                    "Invalid prefix list format ({}), open parenthesis doesn't split prefix in two pieces.",
                     line
                 )))?
                 .split(")")
                 .next()
                 .ok_or(PrefixListError::General(format!(
-                    "Invalid prefix list format ({}), close parentesis doesn't split prefix in two pieces.",
+                    "Invalid prefix list format ({}), close parenthesis doesn't split prefix in two pieces.",
                     line
                 )))?
                 .trim()
