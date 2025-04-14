@@ -9,6 +9,16 @@ All Cisco FW platforms have limits on number of ACL entries supported. Though th
 
 In 2025 those numbers are higher, but still not infinity. This tool intended to analyze policies configured on FTD and recommend actions to reduce number of ACE by cleaning up shadow items or merge items together.
 
+## Use case 
+
+If you are getting closer to the limit - don't panic ! It is time to start thinking how to optimize your policies. Policies might not be beautifully arranged into groups anymore, but you;ll get an idea of "how to" tackle the problem. Crossing the limit does **NOT** mean that your policy stop working or box will crash. You probably have runway for another 5-10%. 
+
+## How to use
+
+1. Login to FTD CLI
+3. Collect 'show access-control-config`
+4. Run the script `ftd-acl-optimizer analyze -f collected_output.txt`
+
 ## Cisco solution
 
 CDO (Cisco Defense Orchestrator) can analyze policy and produce report. Integrate FMC with CDO then navigate to [Policy insight](https://docs.defenseorchestrator.com/?cid=manage_ftd#!t-policy-insights-.html)
@@ -42,16 +52,6 @@ If enterprise has a single app that spread between two on-prem DC and three majo
 * no multicast
 
 `(2 x 10 On-prem) x (3 x 10 CSP) x 20 sec ports x 25 dst ports = 300,000 ACE`
-
-## Use case 
-
-If you are getting closer to the limit - don't panic ! It is time to start thinking how to optimize your policies. Policies might not be beautifully arranged into groups anymore, but you;ll get an idea of "how to" tackle the problem. Crossing the limit does **NOT** mean that your policy stop working or box will crash. You probably have runway for another 5-10%. 
-
-## How to use
-
-1. Login to FTG CLI
-2. Collect 'show access-control-config`
-3. Run the script `ftd-acl-optimizer analyze -f collected_output.txt`
 
 ## Optimizations
 
