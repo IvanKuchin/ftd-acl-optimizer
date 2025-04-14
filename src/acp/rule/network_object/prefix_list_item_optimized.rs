@@ -2,7 +2,7 @@ use super::{
     group::prefix_list::prefix_list_item::PrefixListItem, network_object_item::NetworkObjectItem,
 };
 
-use crate::rules::rule::network_object::group::prefix_list::prefix_list_item::ip_range::IPRange;
+use crate::acp::rule::network_object::group::prefix_list::prefix_list_item::ip_range::IPRange;
 
 #[derive(Debug)]
 pub struct PrefixListItemOptimized {
