@@ -1,7 +1,7 @@
-use rules::Rules;
+use acp::Acp;
 use std::path::PathBuf;
 
-pub mod rules;
+pub mod acp;
 
 use clap::Parser;
 
@@ -12,9 +12,9 @@ pub enum MyError {
     #[error("IO Error: {0}")]
     Io(#[from] std::io::Error),
     #[error("Fail to parse rule: {0}")]
-    Rule(#[from] rules::rule::RuleError),
+    Rule(#[from] acp::rule::RuleError),
     #[error("Fail to parse rules: {0}")]
-    Rules(#[from] rules::RulesError),
+    Rules(#[from] acp::AcpError),
     #[error("No rule found with name: {name}")]
     RuleEmpty { name: String },
     #[error("No rules found")]
@@ -58,7 +58,7 @@ fn analyze_rule(fname: &PathBuf, rule_name: &str) -> Result<(), MyError> {
         .map(|s| s.to_string())
         .collect();
 
-    let rules = Rules::try_from(rule_lines)?;
+    let rules = Acp::try_from(rule_lines)?;
 
     if rules.is_empty() {
         return Err(MyError::RuleEmpty {
@@ -80,7 +80,7 @@ fn analyze_policy(fname: &PathBuf) -> Result<(), MyError> {
         .map(|s| s.to_string())
         .collect();
 
-    let rules = Rules::try_from(rule_lines)?;
+    let rules = Acp::try_from(rule_lines)?;
 
     if rules.is_empty() {
         return Err(MyError::RulesEmpty {});

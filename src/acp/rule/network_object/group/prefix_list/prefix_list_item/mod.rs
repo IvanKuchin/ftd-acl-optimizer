@@ -3,12 +3,13 @@ use std::str::FromStr;
 mod prefix;
 use prefix::Prefix;
 
-mod ip_range;
+pub mod ip_range;
 use ip_range::IPRange;
 
 mod ipv4;
+use ipv4::IPv4;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum PrefixListItem {
     Prefix(Prefix),
     IPRange(IPRange),
@@ -48,6 +49,27 @@ impl PrefixListItem {
         match self {
             PrefixListItem::Prefix(prefix) => prefix.capacity(),
             PrefixListItem::IPRange(ip_range) => ip_range.capacity(),
+        }
+    }
+
+    pub fn get_name(&self) -> &str {
+        match self {
+            PrefixListItem::Prefix(prefix) => prefix.get_name(),
+            PrefixListItem::IPRange(ip_range) => ip_range.get_name(),
+        }
+    }
+
+    pub fn start_ip(&self) -> &IPv4 {
+        match self {
+            PrefixListItem::Prefix(prefix) => prefix.start_ip(),
+            PrefixListItem::IPRange(ip_range) => ip_range.start_ip(),
+        }
+    }
+
+    pub fn end_ip(&self) -> &IPv4 {
+        match self {
+            PrefixListItem::Prefix(prefix) => prefix.end_ip(),
+            PrefixListItem::IPRange(ip_range) => ip_range.end_ip(),
         }
     }
 }
@@ -97,6 +119,6 @@ mod tests {
     fn test_prefix_list_item_capacity_ip_range() {
         let input = "10.11.12.13-10.11.12.18";
         let prefix_list_item = PrefixListItem::from_str(input).unwrap();
-        assert_eq!(prefix_list_item.capacity(), 6); // 10.11.12.13 to 10.11.12.18 inclusive
+        assert_eq!(prefix_list_item.capacity(), 4); // 10.11.12.13 to 10.11.12.18 inclusive
     }
 }

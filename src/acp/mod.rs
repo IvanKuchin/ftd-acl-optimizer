@@ -8,7 +8,7 @@ use rule::Rule;
 use std::convert::TryFrom;
 
 #[derive(thiserror::Error, Debug)]
-pub enum RulesError {
+pub enum AcpError {
     #[error("Fail to parse rules: {0}")]
     General(String),
     #[error("Failed to parse rule: {0}")]
@@ -16,9 +16,9 @@ pub enum RulesError {
 }
 
 #[derive(Debug)]
-pub struct Rules(Vec<Rule>);
+pub struct Acp(Vec<Rule>);
 
-impl Deref for Rules {
+impl Deref for Acp {
     type Target = Vec<Rule>;
 
     fn deref(&self) -> &Self::Target {
@@ -26,8 +26,8 @@ impl Deref for Rules {
     }
 }
 
-impl TryFrom<Vec<String>> for Rules {
-    type Error = RulesError;
+impl TryFrom<Vec<String>> for Acp {
+    type Error = AcpError;
 
     fn try_from(lines: Vec<String>) -> Result<Self, Self::Error> {
         let mut reader = Reader::from(lines);
@@ -44,7 +44,7 @@ impl TryFrom<Vec<String>> for Rules {
     }
 }
 
-impl Rules {
+impl Acp {
     pub fn capacity(&self) -> u64 {
         self.iter().map(|r| r.capacity()).sum()
     }

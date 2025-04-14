@@ -1,9 +1,9 @@
 use std::str::FromStr;
 
-mod prefix_list_item;
+pub mod prefix_list_item;
 use prefix_list_item::PrefixListItem;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct PrefixList {
     name: String,
     items: Vec<PrefixListItem>,
@@ -13,6 +13,8 @@ pub struct PrefixList {
 pub enum PrefixListError {
     #[error("Fail to parse prefix list: {0}")]
     General(String),
+    #[error("Fail to parse prefix list {0}")]
+    GeneralNoColon(String),
     #[error("Fail to parse prefix list: {0}")]
     PrefixListItemError(#[from] prefix_list_item::PrefixListItemError),
 }
@@ -32,16 +34,30 @@ impl FromStr for PrefixList {
         if line.contains("(") && line.contains(")") {
             let name = line.split("(").collect::<Vec<&str>>()[0].trim().to_string();
 
-            let prefix_str = line.split("(").collect::<Vec<&str>>()[1]
+            let prefix_str = line
+                .split("(")
+                .nth(1)
+                .ok_or(PrefixListError::General(format!(
+                    "Invalid prefix list format ({}), open parenthesis doesn't split prefix in two pieces.",
+                    line
+                )))?
                 .split(")")
-                .collect::<Vec<&str>>()[0]
+                .next()
+                .ok_or(PrefixListError::General(format!(
+                    "Invalid prefix list format ({}), close parenthesis doesn't split prefix in two pieces.",
+                    line
+                )))?
                 .trim()
                 .to_string();
 
-            let items: Vec<_> = prefix_str
+            let items = prefix_str
                 .split(",")
-                .map(|s| s.trim().parse::<PrefixListItem>())
-                .collect::<Result<_, prefix_list_item::PrefixListItemError>>()?;
+                .map(|s| {
+                    s.trim()
+                        .parse::<PrefixListItem>()
+                        .map_err(|e| PrefixListError::GeneralNoColon(format!("({}) :{}", line, e)))
+                })
+                .collect::<Result<Vec<_>, _>>()?;
 
             Ok(Self { name, items })
         } else if !line.contains("(") && !line.contains(")") {
@@ -66,6 +82,17 @@ impl FromStr for PrefixList {
 }
 
 impl PrefixList {
+    pub fn get_name(&self) -> &str {
+        &self.name
+    }
+
+    pub fn get_items(&self) -> &Vec<PrefixListItem> {
+        &self.items
+    }
+
+    /// Returns the number of subnets in the list.
+    /// This function does NOT perform optimizations (overlaps, shadowing, merging).
+    /// For example: Test-prefix (192.168.0.0/24, 192.168.0.0/25) will return 2.
     pub fn capacity(&self) -> u64 {
         self.items.iter().map(|p| p.capacity()).sum()
     }
@@ -111,9 +138,6 @@ mod tests {
         let line = "Invalid (10.0.0.0/8, invalid_prefix)";
         let result = PrefixList::from_str(line);
         assert!(result.is_err());
-        assert_eq!(
-            format!("{}", result.unwrap_err()), 
-            "Fail to parse prefix list: Failed to parse prefix list item: Failed to parse prefix: Failed to parse IPv4 address: invalid digit found in string");
     }
 
     #[test]
@@ -125,6 +149,25 @@ mod tests {
             format!("{}", result.unwrap_err()), 
             "Fail to parse prefix list: Failed to parse prefix list item: Fail to parse prefix: Invalid prefix format (expected IPv4 or Prefix/len) in RFC1918 10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16."
         );
+    }
+
+    #[test]
+    fn test_invalid_prefix_list_open_parenthesis() {
+        let line = "RFC1918 (";
+        let result = PrefixList::from_str(line);
+        assert!(result.is_err());
+        assert_eq!(
+            format!("{}", result.unwrap_err()),
+            "Fail to parse prefix list: Invalid prefix list format RFC1918 ("
+        );
+    }
+
+    #[test]
+    fn test_invalid_prefix_list_close_parenthesis() {
+        let line = "RFC1918 (  )10.0.0.0/32";
+        let result = PrefixList::from_str(line);
+        dbg!(&result);
+        assert!(result.is_err());
     }
 
     #[test]
@@ -180,10 +223,17 @@ mod tests {
     }
 
     #[test]
-    fn test_capacity_with_ip_range() {
+    fn test_capacity_with_ip_range_1() {
         let line = "Range (192.168.1.1-192.168.1.10)";
         let prefix_list = PrefixList::from_str(line).unwrap();
-        assert_eq!(prefix_list.capacity(), 10); // 10 IPs in the range
+        assert_eq!(prefix_list.capacity(), 5);
+    }
+
+    #[test]
+    fn test_capacity_with_ip_range_2() {
+        let line = "Range (192.168.1.1-192.168.1.10, 192.168.1.1-192.168.1.10)";
+        let prefix_list = PrefixList::from_str(line).unwrap();
+        assert_eq!(prefix_list.capacity(), 10);
     }
 
     #[test]
@@ -197,6 +247,6 @@ mod tests {
     fn test_capacity_mixed_prefixes_and_ranges() {
         let line = "Mixed (10.0.0.0/8, 192.168.1.1-192.168.1.10)";
         let prefix_list = PrefixList::from_str(line).unwrap();
-        assert_eq!(prefix_list.capacity(), 1 + 10); // 1 + 10
+        assert_eq!(prefix_list.capacity(), 1 + 5); // 1 + 10
     }
 }

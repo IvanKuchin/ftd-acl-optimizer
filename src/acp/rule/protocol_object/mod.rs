@@ -14,6 +14,8 @@ use protocol_list_optimized::ProtocolListOptimized;
 mod protocol_object_item;
 use protocol_object_item::ProtocolObjectItem;
 
+pub mod description;
+
 #[derive(Debug)]
 pub struct ProtocolObject {
     name: String,
@@ -66,13 +68,13 @@ impl ProtocolObject {
     /// Optimizes all PortLists inside the PortObject.
     /// Those optimizations automatically performed by FTD
     pub fn optimize(&self) -> Vec<ProtocolListOptimized> {
-        let port_lists: Vec<&ProtocolList> = self
+        let protocol_lists: Vec<&ProtocolList> = self
             .items
             .iter()
             .flat_map(|item| item.collect_objects())
             .collect();
 
-        let l3_items: Vec<&ProtocolList> = port_lists
+        let l3_items: Vec<&ProtocolList> = protocol_lists
             .iter()
             .filter(|port_list| !port_list.is_l4())
             .copied()
@@ -84,7 +86,7 @@ impl ProtocolObject {
             .map(|port_list| ProtocolListOptimized::from(port_list))
             .collect();
 
-        let l4_items: Vec<&ProtocolList> = port_lists
+        let l4_items: Vec<&ProtocolList> = protocol_lists
             .iter()
             .filter(|port_list| port_list.is_l4())
             .copied()
@@ -148,7 +150,7 @@ fn optimize_l4_items(to_optimize: Vec<&ProtocolList>) -> Vec<ProtocolListOptimiz
             let (next_start, next_end) = next_item.get_ports();
 
             if next_start as u32 <= curr_end as u32 + 1 {
-                let verb = description_verb(curr_end, next_start, next_end);
+                let verb = description::verb(curr_end as u32, next_start as u32, next_end as u32);
                 let new_name = format!(
                     "{} {verb} {}",
                     current_item.get_name(),
@@ -182,16 +184,6 @@ fn optimize_l4_items(to_optimize: Vec<&ProtocolList>) -> Vec<ProtocolListOptimiz
     result.push(optimized_items);
 
     result
-}
-
-fn description_verb(curr_end: u16, next_start: u16, next_end: u16) -> String {
-    if curr_end as u32 + 1 == next_start as u32 {
-        "ADJOINS".to_string()
-    } else if next_end <= curr_end {
-        "SHADOWS".to_string()
-    } else {
-        "PARTIALLY OVERLAPS".to_string()
-    }
 }
 
 #[cfg(test)]

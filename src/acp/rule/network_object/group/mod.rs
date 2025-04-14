@@ -3,7 +3,7 @@ use std::str::FromStr;
 pub mod prefix_list;
 use prefix_list::PrefixList;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Group {
     name: String,
     prefix_lists: Vec<PrefixList>,
@@ -60,6 +60,14 @@ impl TryFrom<&Vec<String>> for Group {
 }
 
 impl Group {
+    pub fn get_name(&self) -> &str {
+        &self.name
+    }
+
+    pub fn get_prefix_lists(&self) -> &Vec<PrefixList> {
+        &self.prefix_lists
+    }
+
     pub fn capacity(&self) -> u64 {
         self.prefix_lists.iter().map(|p| p.capacity()).sum()
     }
@@ -167,7 +175,7 @@ mod tests {
             "192.168.1.1-192.168.1.10".to_string(),
         ];
         let group = Group::try_from(&lines).unwrap();
-        assert_eq!(group.capacity(), 10); // 10 IPs in the range
+        assert_eq!(group.capacity(), 5); // 10 IPs in the range
     }
 
     #[test]
@@ -185,7 +193,7 @@ mod tests {
             "192.168.1.1-192.168.1.10".to_string(),
         ];
         let group = Group::try_from(&lines).unwrap();
-        assert_eq!(group.capacity(), 1 + 10); // 1 + 10
+        assert_eq!(group.capacity(), 1 + 5);
     }
 
     #[test]
@@ -196,6 +204,6 @@ mod tests {
             "192.168.2.1-192.168.2.3".to_string(),
         ];
         let group = Group::try_from(&lines).unwrap();
-        assert_eq!(group.capacity(), 5 + 3); // 5 + 3
+        assert_eq!(group.capacity(), 3 + 2);
     }
 }
