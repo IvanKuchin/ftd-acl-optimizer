@@ -95,7 +95,7 @@ impl NetworkObject {
         self.items.iter().map(|item| item.capacity()).sum()
     }
 
-    pub fn optimize(&self) -> Result<NetworkObjectOptimized, NetworkObjectError> {
+    pub fn optimize(&self) -> NetworkObjectOptimized {
         let items = self
             .items
             .iter()
@@ -104,11 +104,10 @@ impl NetworkObject {
             .collect::<Vec<_>>();
 
         let merged_items = optimize_prefixes(items);
-        let optimized = network_object_optimized::Builder::new(merged_items)
-            .with_name(self.name.clone())
-            .build();
 
-        Ok(optimized)
+        network_object_optimized::Builder::new(merged_items)
+            .with_name(self.name.clone())
+            .build()
     }
 }
 
@@ -390,7 +389,7 @@ mod tests {
         ];
         let network_object = NetworkObject::try_from(&lines).unwrap();
         assert_eq!(network_object.capacity(), 9);
-        let optimized = network_object.optimize().unwrap();
+        let optimized = network_object.optimize();
         assert_eq!(optimized.capacity(), 1);
     }
 
@@ -403,7 +402,7 @@ mod tests {
         ];
         let network_object = NetworkObject::try_from(&lines).unwrap();
         assert_eq!(network_object.capacity(), 13);
-        let optimized = network_object.optimize().unwrap();
+        let optimized = network_object.optimize();
         assert_eq!(optimized.capacity(), 1);
     }
 
@@ -416,7 +415,7 @@ mod tests {
         ];
         let network_object = NetworkObject::try_from(&lines).unwrap();
         assert_eq!(network_object.capacity(), 9);
-        let optimized = network_object.optimize().unwrap();
+        let optimized = network_object.optimize();
         assert_eq!(optimized.capacity(), 1);
     }
 
@@ -429,7 +428,7 @@ mod tests {
         ];
         let network_object = NetworkObject::try_from(&lines).unwrap();
         assert_eq!(network_object.capacity(), 2);
-        let optimized = network_object.optimize().unwrap();
+        let optimized = network_object.optimize();
         assert_eq!(optimized.capacity(), 1);
     }
 
@@ -444,7 +443,7 @@ mod tests {
         ];
         let network_object = NetworkObject::try_from(&lines).unwrap();
         assert_eq!(network_object.capacity(), 4);
-        let optimized = network_object.optimize().unwrap();
+        let optimized = network_object.optimize();
         assert_eq!(optimized.capacity(), 2);
     }
 
@@ -457,7 +456,7 @@ mod tests {
         ];
         let network_object = NetworkObject::try_from(&lines).unwrap();
         assert_eq!(network_object.capacity(), 2);
-        let optimized = network_object.optimize().unwrap();
+        let optimized = network_object.optimize();
         assert_eq!(optimized.capacity(), 1);
     }
 
@@ -466,7 +465,7 @@ mod tests {
         let lines = vec!["Source Networks       : Internal (group)".to_string()];
         let network_object = NetworkObject::try_from(&lines).unwrap();
         assert_eq!(network_object.capacity(), 0);
-        let optimized = network_object.optimize().unwrap();
+        let optimized = network_object.optimize();
         assert_eq!(optimized.capacity(), 0);
     }
 }

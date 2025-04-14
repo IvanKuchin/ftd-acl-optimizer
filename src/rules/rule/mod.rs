@@ -153,14 +153,28 @@ impl TryFrom<Vec<String>> for Rule {
 
 impl Rule {
     pub fn capacity(&self) -> u64 {
-        let src_protocols = self.src_protocols.as_ref().map(|p| p.optimize());
-        let dst_protocols = self.dst_protocols.as_ref().map(|p| p.optimize());
-        let protocol_factor = get_protocol_factor(&src_protocols, &dst_protocols);
+        let src_protocols_opt = self.src_protocols.as_ref().map(|p| p.optimize());
+        let dst_protocols_opt = self.dst_protocols.as_ref().map(|p| p.optimize());
+        let protocol_factor = get_protocol_factor(&src_protocols_opt, &dst_protocols_opt);
 
         let src_networks = self.src_networks.as_ref().map_or(1, |n| n.capacity());
         let dst_networks = self.dst_networks.as_ref().map_or(1, |n| n.capacity());
 
         src_networks * dst_networks * protocol_factor
+    }
+
+    pub fn optimized_capacity(&self) -> u64 {
+        let src_protocols_opt = self.src_protocols.as_ref().map(|p| p.optimize());
+        let dst_protocols_opt = self.dst_protocols.as_ref().map(|p| p.optimize());
+        let protocol_factor = get_protocol_factor(&src_protocols_opt, &dst_protocols_opt);
+
+        let src_networks_opt = self.src_networks.as_ref().map(|n| n.optimize());
+        let dst_networks_opt = self.dst_networks.as_ref().map(|n| n.optimize());
+
+        let src_networks_capacity = src_networks_opt.as_ref().map_or(1, |n| n.capacity());
+        let dst_networks_capacity = dst_networks_opt.as_ref().map_or(1, |n| n.capacity());
+
+        src_networks_capacity * dst_networks_capacity * protocol_factor
     }
 }
 
