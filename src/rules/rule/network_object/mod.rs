@@ -16,7 +16,7 @@ use prefix_list_item_optimized::PrefixListItemOptimized;
 
 use group::prefix_list::prefix_list_item::PrefixListItem;
 
-mod network_object_optimized;
+pub mod network_object_optimized;
 use network_object_optimized::NetworkObjectOptimized;
 
 #[derive(Debug)]

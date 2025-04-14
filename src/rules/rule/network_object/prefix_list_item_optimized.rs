@@ -34,14 +34,6 @@ impl PrefixListItemOptimized {
 
         let ip_range = IPRange::new(self.name.clone(), start_ip.clone(), end_ip.clone());
 
-        println!(
-            "PrefixListItemOptimized ({}) capacity: {} - {} = {}",
-            self.name,
-            start_ip,
-            end_ip,
-            ip_range.capacity()
-        );
-
         ip_range.capacity()
     }
 }

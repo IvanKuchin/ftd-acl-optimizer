@@ -6,6 +6,7 @@ use network_object::NetworkObject;
 mod protocol_object;
 use protocol_object::ProtocolObject;
 
+use network_object::network_object_optimized::NetworkObjectOptimized;
 use protocol_object::protocol_list_optimized::ProtocolListOptimized;
 
 #[derive(Debug)]
@@ -151,15 +152,19 @@ impl TryFrom<Vec<String>> for Rule {
 }
 
 impl Rule {
+    pub fn get_name(&self) -> &str {
+        &self.name
+    }
+
     pub fn capacity(&self) -> u64 {
         let src_protocols_opt = self.src_protocols.as_ref().map(|p| p.optimize());
         let dst_protocols_opt = self.dst_protocols.as_ref().map(|p| p.optimize());
         let protocol_factor = get_protocol_factor(&src_protocols_opt, &dst_protocols_opt);
 
-        let src_networks = self.src_networks.as_ref().map_or(1, |n| n.capacity());
-        let dst_networks = self.dst_networks.as_ref().map_or(1, |n| n.capacity());
+        let src_networks_capacity = self.src_networks.as_ref().map_or(1, |n| n.capacity());
+        let dst_networks_capacity = self.dst_networks.as_ref().map_or(1, |n| n.capacity());
 
-        src_networks * dst_networks * protocol_factor
+        src_networks_capacity * dst_networks_capacity * protocol_factor
     }
 
     pub fn optimized_capacity(&self) -> u64 {
@@ -167,13 +172,24 @@ impl Rule {
         let dst_protocols_opt = self.dst_protocols.as_ref().map(|p| p.optimize());
         let protocol_factor = get_protocol_factor(&src_protocols_opt, &dst_protocols_opt);
 
-        let src_networks_opt = self.src_networks.as_ref().map(|n| n.optimize());
-        let dst_networks_opt = self.dst_networks.as_ref().map(|n| n.optimize());
+        let (src_networks_opt, dst_networks_opt) = self.get_optimized_networks();
 
         let src_networks_capacity = src_networks_opt.as_ref().map_or(1, |n| n.capacity());
         let dst_networks_capacity = dst_networks_opt.as_ref().map_or(1, |n| n.capacity());
 
         src_networks_capacity * dst_networks_capacity * protocol_factor
+    }
+
+    pub fn get_optimized_networks(
+        &self,
+    ) -> (
+        Option<NetworkObjectOptimized>,
+        Option<NetworkObjectOptimized>,
+    ) {
+        (
+            self.src_networks.as_ref().map(|n| n.optimize()),
+            self.dst_networks.as_ref().map(|n| n.optimize()),
+        )
     }
 }
 
@@ -804,5 +820,148 @@ mod tests {
         assert!(rule.src_protocols.is_some());
         assert!(rule.dst_protocols.is_some());
         assert_eq!(rule.capacity(), 8);
+    }
+
+    #[test]
+    fn test_optimized_capacity_1() {
+        let rule = "----------[ Rule: Custom_rule2 | FM-15046 ]-----------
+    Source Networks       : Internal (group)
+        OBJ-192.168.100.0 (192.168.100.0/23)
+        OBJ-10.11.0.0 (10.11.0.0/16)
+        OBJ-172.16.17.0-200 (172.16.17.0-172.16.17.200)
+      OBJ-192.168.101.0_24 (192.168.101.0/24)
+      OBJ-10.10.0.0_16 (10.10.0.0/16)
+      OBJ-172.16.17.64-255 (172.16.17.64-172.16.17.255)
+    Destination Networks  : OBJ-10.138.0.0_16 (10.138.0.0/16)
+        10.0.0.0/8
+        172.16.0.0/12
+        192.168.0.0/16        
+      OBJ-192.168.243.0_24 (192.168.243.0/24)
+      OBJ-10.18.46.62-69 (10.18.46.62-10.18.46.69)
+    Source Ports     : ephemeral (protocol 6, port 1024)
+       FTP (protocol 6, port 21)
+    Destination Ports  : HTTPS (protocol 6, port 443)
+       FTP (protocol 6, port 21)
+       SSH (protocol 6, port 22)
+    Logging Configuration";
+        let lines: Vec<String> = rule.lines().map(|s| s.to_string()).collect();
+        let rule = Rule::try_from(lines).unwrap();
+        assert_eq!(rule.name, "Custom_rule2".to_string());
+        assert_eq!(rule.src_networks.as_ref().unwrap().capacity(), 10);
+        assert_eq!(rule.dst_networks.as_ref().unwrap().capacity(), 8);
+        assert!(rule.src_protocols.is_some());
+        assert!(rule.dst_protocols.is_some());
+        assert_eq!(rule.capacity(), 10 * 8 * 2 * 2);
+        assert_eq!(rule.optimized_capacity(), 3 * 3 * 2 * 2);
+    }
+
+    #[test]
+    fn test_optimized_capacity_missing_src_network() {
+        let rule = "----------[ Rule: Custom_rule2 | FM-15046 ]-----------
+    Destination Networks  : OBJ-10.138.0.0_16 (10.138.0.0/16)
+        10.0.0.0/8
+        172.16.0.0/12
+        192.168.0.0/16        
+      OBJ-192.168.243.0_24 (192.168.243.0/24)
+      OBJ-10.18.46.62-69 (10.18.46.62-10.18.46.69)
+    Source Ports     : ephemeral (protocol 6, port 1024)
+       FTP (protocol 6, port 21)
+    Destination Ports  : HTTPS (protocol 6, port 443)
+       FTP (protocol 6, port 21)
+       SSH (protocol 6, port 22)
+    Logging Configuration";
+        let lines: Vec<String> = rule.lines().map(|s| s.to_string()).collect();
+        let rule = Rule::try_from(lines).unwrap();
+        assert_eq!(rule.name, "Custom_rule2".to_string());
+        assert_eq!(rule.dst_networks.as_ref().unwrap().capacity(), 8);
+        assert!(rule.src_protocols.is_some());
+        assert!(rule.dst_protocols.is_some());
+        assert_eq!(rule.capacity(), 8 * 2 * 2);
+        assert_eq!(rule.optimized_capacity(), 3 * 2 * 2);
+    }
+
+    #[test]
+    fn test_optimized_capacity_missing_dst_network() {
+        let rule = "----------[ Rule: Custom_rule2 | FM-15046 ]-----------
+    Source Networks       : Internal (group)
+        OBJ-192.168.100.0 (192.168.100.0/23)
+        OBJ-10.11.0.0 (10.11.0.0/16)
+        OBJ-172.16.17.0-200 (172.16.17.0-172.16.17.200)
+      OBJ-192.168.101.0_24 (192.168.101.0/24)
+      OBJ-10.10.0.0_16 (10.10.0.0/16)
+      OBJ-172.16.17.64-255 (172.16.17.64-172.16.17.255)
+    Source Ports     : ephemeral (protocol 6, port 1024)
+       FTP (protocol 6, port 21)
+    Destination Ports  : HTTPS (protocol 6, port 443)
+       FTP (protocol 6, port 21)
+       SSH (protocol 6, port 22)
+    Logging Configuration";
+        let lines: Vec<String> = rule.lines().map(|s| s.to_string()).collect();
+        let rule = Rule::try_from(lines).unwrap();
+        assert_eq!(rule.name, "Custom_rule2".to_string());
+        assert_eq!(rule.src_networks.as_ref().unwrap().capacity(), 10);
+        assert!(rule.src_protocols.is_some());
+        assert!(rule.dst_protocols.is_some());
+        assert_eq!(rule.capacity(), 10 * 2 * 2);
+        assert_eq!(rule.optimized_capacity(), 3 * 2 * 2);
+    }
+
+    #[test]
+    fn test_optimized_capacity_missing_src_ports() {
+        let rule = "----------[ Rule: Custom_rule2 | FM-15046 ]-----------
+    Source Networks       : Internal (group)
+        OBJ-192.168.100.0 (192.168.100.0/23)
+        OBJ-10.11.0.0 (10.11.0.0/16)
+        OBJ-172.16.17.0-200 (172.16.17.0-172.16.17.200)
+      OBJ-192.168.101.0_24 (192.168.101.0/24)
+      OBJ-10.10.0.0_16 (10.10.0.0/16)
+      OBJ-172.16.17.64-255 (172.16.17.64-172.16.17.255)
+    Destination Networks  : OBJ-10.138.0.0_16 (10.138.0.0/16)
+        10.0.0.0/8
+        172.16.0.0/12
+        192.168.0.0/16        
+      OBJ-192.168.243.0_24 (192.168.243.0/24)
+      OBJ-10.18.46.62-69 (10.18.46.62-10.18.46.69)
+    Destination Ports  : HTTPS (protocol 6, port 443)
+       FTP (protocol 6, port 21)
+       SSH (protocol 6, port 22)
+    Logging Configuration";
+        let lines: Vec<String> = rule.lines().map(|s| s.to_string()).collect();
+        let rule = Rule::try_from(lines).unwrap();
+        assert_eq!(rule.name, "Custom_rule2".to_string());
+        assert_eq!(rule.src_networks.as_ref().unwrap().capacity(), 10);
+        assert_eq!(rule.dst_networks.as_ref().unwrap().capacity(), 8);
+        assert!(rule.dst_protocols.is_some());
+        assert_eq!(rule.capacity(), 10 * 8 * 2);
+        assert_eq!(rule.optimized_capacity(), 3 * 3 * 2);
+    }
+
+    #[test]
+    fn test_optimized_capacity_missing_dst_ports() {
+        let rule = "----------[ Rule: Custom_rule2 | FM-15046 ]-----------
+    Source Networks       : Internal (group)
+        OBJ-192.168.100.0 (192.168.100.0/23)
+        OBJ-10.11.0.0 (10.11.0.0/16)
+        OBJ-172.16.17.0-200 (172.16.17.0-172.16.17.200)
+      OBJ-192.168.101.0_24 (192.168.101.0/24)
+      OBJ-10.10.0.0_16 (10.10.0.0/16)
+      OBJ-172.16.17.64-255 (172.16.17.64-172.16.17.255)
+    Destination Networks  : OBJ-10.138.0.0_16 (10.138.0.0/16)
+        10.0.0.0/8
+        172.16.0.0/12
+        192.168.0.0/16        
+      OBJ-192.168.243.0_24 (192.168.243.0/24)
+      OBJ-10.18.46.62-69 (10.18.46.62-10.18.46.69)
+    Source Ports     : ephemeral (protocol 6, port 1024)
+       FTP (protocol 6, port 21)
+    Logging Configuration";
+        let lines: Vec<String> = rule.lines().map(|s| s.to_string()).collect();
+        let rule = Rule::try_from(lines).unwrap();
+        assert_eq!(rule.name, "Custom_rule2".to_string());
+        assert_eq!(rule.src_networks.as_ref().unwrap().capacity(), 10);
+        assert_eq!(rule.dst_networks.as_ref().unwrap().capacity(), 8);
+        assert!(rule.src_protocols.is_some());
+        assert_eq!(rule.capacity(), 10 * 8 * 2);
+        assert_eq!(rule.optimized_capacity(), 3 * 3 * 2);
     }
 }
