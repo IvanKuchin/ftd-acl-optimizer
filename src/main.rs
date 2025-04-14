@@ -31,12 +31,12 @@ fn main() {
             if let Some(rule) = analyze_args.rule {
                 match analyze_rule(&analyze_args.file, &rule) {
                     Ok(()) => {}
-                    Err(e) => println!("Analysis failed: {}", e),
+                    Err(e) => println!("Rule analysis failed: {}", e),
                 }
             } else {
                 match analyze_policy(&analyze_args.file) {
                     Ok(()) => {}
-                    Err(e) => println!("Analysis failed: {}", e),
+                    Err(e) => println!("Access Control Policy(ACP) analysis failed: {}", e),
                 }
             }
         }
