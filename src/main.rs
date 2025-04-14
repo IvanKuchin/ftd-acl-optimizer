@@ -4,7 +4,9 @@ use std::path::PathBuf;
 
 pub mod acp;
 
-use clap::{arg, command, value_parser, Command};
+use clap::Parser;
+
+mod args;
 
 #[derive(thiserror::Error, Debug)]
 pub enum MyError {
@@ -23,54 +25,21 @@ pub enum MyError {
 }
 
 fn main() {
-    let matches = command!() // requires `cargo` feature
-        .subcommand_required(true)
-        .arg(arg!(
-            -d --debug ... "Turn debugging information on"
-        ))
-        .subcommand(
-            Command::new("analyze")
-                .arg_required_else_help(true)
-                .about("Analyze rule from 'show access-control-config'")
-                .arg(
-                    arg!(
-                        -f --file <FILE> "(required) Output of show access-control-config"
-                    )
-                    // We don't have syntax yet for optional options, so manually calling `required`
-                    .required(true)
-                    .value_parser(value_parser!(PathBuf)),
-                )
-                .arg(arg!(
-                    -r --rule <RULE> "(optional) Rule name to analyze"
-                )),
-        )
-        .get_matches();
+    let args = args::AppArgs::parse();
 
-    // You can see how many times a particular flag or argument occurred
-    // Note, only flags can have multiple occurrences
-    let _trace_level = {
-        match matches.get_one::<u8>("debug") {
-            None => panic!("Debug flag was not set"),
-            Some(0) => 0,
-            Some(1) => 1,
-            Some(2) => 2,
-            Some(_) => panic!("Debug flag was set more than twice"),
-        }
-    };
-
-    // You can check for the existence of subcommands, and if found use their
-    // matches just as you would the top level cmd
-    if let Some(matches) = matches.subcommand_matches("analyze") {
-        let file_path = matches.get_one::<PathBuf>("file").expect("file not found");
-        let rule = matches.get_one::<String>("rule");
-
-        if let Some(rule) = rule {
-            match analyze_rule(file_path, rule) {
-                Ok(()) => {}
-                Err(e) => println!("Analysis failed: {}", e),
+    match args.subcommand {
+        args::SubCommand::Analyze(analyze_args) => {
+            if let Some(rule) = analyze_args.rule {
+                match analyze_rule(&analyze_args.file, &rule) {
+                    Ok(()) => {}
+                    Err(e) => println!("Analysis failed: {}", e),
+                }
+            } else {
+                match analyze_policy(&analyze_args.file) {
+                    Ok(()) => {}
+                    Err(e) => println!("Analysis failed: {}", e),
+                }
             }
-        } else {
-            todo!();
         }
     }
 }
@@ -79,11 +48,13 @@ fn is_filtered(line: &str) -> bool {
     line.contains("Object missing: ") || line.contains("")
 }
 
-fn analyze_rule(fname: &PathBuf, rule: &String) -> Result<(), MyError> {
+fn analyze_rule(fname: &PathBuf, rule_name: &str) -> Result<(), MyError> {
     let rule_lines: Vec<_> = std::fs::read_to_string(fname)?
         .lines()
-        .skip_while(|line| !line.contains(&format!("Rule: {}", rule)))
-        .take_while(|line| !line.contains("Rule: ") || line.contains(&format!("Rule: {}", rule)))
+        .skip_while(|line| !line.contains(&format!("Rule: {}", rule_name)))
+        .take_while(|line| {
+            !line.contains("Rule: ") || line.contains(&format!("Rule: {}", rule_name))
+        })
         .filter(|line| !is_filtered(line))
         .map(|s| s.to_string())
         .collect();
@@ -91,20 +62,22 @@ fn analyze_rule(fname: &PathBuf, rule: &String) -> Result<(), MyError> {
     let rules = Acp::try_from(rule_lines)?;
 
     if rules.is_empty() {
-        return Err(MyError::RuleEmpty { name: rule.clone() });
+        return Err(MyError::RuleEmpty {
+            name: rule_name.to_string(),
+        });
     }
 
-    // dbg!(&rules);
     println!("# of rules found: {}", rules.len());
     println!("rule capacity: {}", rules.capacity());
-    todo!("Implement rule analysis");
+    todo!("Implement analysis");
 }
 
-fn _analyze_rules(fname: &PathBuf) -> Result<(), MyError> {
+fn analyze_policy(fname: &PathBuf) -> Result<(), MyError> {
     let rule_lines: Vec<_> = std::fs::read_to_string(fname)?
         .lines()
-        .skip_while(|line| !line.contains("Rule: "))
-        .filter(|line| is_filtered(line))
+        .skip_while(|line| !line.contains("-[ Rule: "))
+        .take_while(|line| !line.contains("=[ Advanced Settings ]="))
+        .filter(|line| !is_filtered(line))
         .map(|s| s.to_string())
         .collect();
 
@@ -114,5 +87,7 @@ fn _analyze_rules(fname: &PathBuf) -> Result<(), MyError> {
         return Err(MyError::RulesEmpty {});
     }
 
-    todo!("Implement rules analysis");
+    println!("# of rules found: {}", rules.len());
+    println!("rule capacity: {}", rules.capacity());
+    todo!("Implement analysis");
 }
