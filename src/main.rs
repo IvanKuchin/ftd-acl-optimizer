@@ -1,5 +1,4 @@
 use acp::Acp;
-use core::panic;
 use std::path::PathBuf;
 
 pub mod acp;
