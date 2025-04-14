@@ -126,7 +126,7 @@ impl TryFrom<Vec<String>> for Rule {
             true => None,
             false => Some(NetworkObject::try_from(&destination_networks).map_err(|e| {
                 RuleError::General2(
-                    format!("destimation networks ({:?})", destination_networks).to_owned(),
+                    format!("destination networks ({:?})", destination_networks).to_owned(),
                     e.to_string(),
                 )
             })?),
