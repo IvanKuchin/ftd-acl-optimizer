@@ -48,4 +48,20 @@ impl Acp {
     pub fn capacity(&self) -> u64 {
         self.iter().map(|r| r.capacity()).sum()
     }
+
+    pub fn optimized_capacity(&self) -> u64 {
+        self.iter().map(|r| r.optimized_capacity()).sum()
+    }
+
+    pub fn rule_count(&self) -> usize {
+        self.len()
+    }
+
+    pub fn rule_by_name(&self, rule_name: &str) -> Option<&Rule> {
+        self.iter().find(|r| r.get_name() == rule_name)
+    }
+
+    pub fn rule_by_idx(&self, idx: usize) -> Option<&Rule> {
+        self.get(idx)
+    }
 }

@@ -1,92 +1,44 @@
-use acp::Acp;
+use clap::Parser;
 use std::path::PathBuf;
 
 pub mod acp;
 
-use clap::Parser;
-
 mod args;
-
-#[derive(thiserror::Error, Debug)]
-pub enum MyError {
-    #[error("IO Error: {0}")]
-    Io(#[from] std::io::Error),
-    #[error("Fail to parse rule: {0}")]
-    Rule(#[from] acp::rule::RuleError),
-    #[error("Fail to parse rules: {0}")]
-    Rules(#[from] acp::AcpError),
-    #[error("No rule found with name: {name}")]
-    RuleEmpty { name: String },
-    #[error("No rules found")]
-    RulesEmpty(),
-    #[error("Unknown error: {0}")]
-    Unknown(String),
-}
+mod cli;
 
 fn main() {
     let args = args::AppArgs::parse();
+    let file = args.file;
 
     match args.subcommand {
-        args::SubCommand::Analyze(analyze_args) => {
-            if let Some(rule) = analyze_args.rule {
-                match analyze_rule(&analyze_args.file, &rule) {
-                    Ok(()) => {}
-                    Err(e) => println!("Rule analysis failed: {}", e),
-                }
-            } else {
-                match analyze_policy(&analyze_args.file) {
-                    Ok(()) => {}
-                    Err(e) => println!("Access Control Policy(ACP) analysis failed: {}", e),
-                }
-            }
+        args::Verb::Get(entity) => match entity {
+            args::Entity::Rule(rule) => parse_rule(&file, rule),
+            args::Entity::TopK(topk) => parse_topk(&file, topk),
+            args::Entity::Acp(acp) => parse_acp(&file, acp),
+        },
+    }
+}
+
+fn parse_rule(file: &PathBuf, rule: args::Rule) {
+    match rule {
+        args::Rule::Capacity(rule_name) => {
+            cli::analyze_rule_capacity(file, &rule_name.name).unwrap_or_else(|e| {
+                eprintln!("Error analyzing rule capacity: {}", e);
+            });
+        }
+        args::Rule::RuleAnalysis(rule_name) => {
+            println!("Analyzing rule: {}", rule_name.name);
         }
     }
 }
 
-fn is_filtered(line: &str) -> bool {
-    line.contains("Object missing: ") || line.contains("")
+fn parse_topk(file: &PathBuf, topk: args::TopK) {
+    todo!("Analyzing top-k rules from file: {}", file.display());
 }
 
-fn analyze_rule(fname: &PathBuf, rule_name: &str) -> Result<(), MyError> {
-    let rule_lines: Vec<_> = std::fs::read_to_string(fname)?
-        .lines()
-        .skip_while(|line| !line.contains(&format!("Rule: {}", rule_name)))
-        .take_while(|line| {
-            !line.contains("Rule: ") || line.contains(&format!("Rule: {}", rule_name))
-        })
-        .filter(|line| !is_filtered(line))
-        .map(|s| s.to_string())
-        .collect();
-
-    let rules = Acp::try_from(rule_lines)?;
-
-    if rules.is_empty() {
-        return Err(MyError::RuleEmpty {
-            name: rule_name.to_string(),
-        });
-    }
-
-    println!("# of rules found: {}", rules.len());
-    println!("rule capacity: {}", rules.capacity());
-    todo!("Implement analysis");
-}
-
-fn analyze_policy(fname: &PathBuf) -> Result<(), MyError> {
-    let rule_lines: Vec<_> = std::fs::read_to_string(fname)?
-        .lines()
-        .skip_while(|line| !line.contains("-[ Rule: "))
-        .take_while(|line| !line.contains("=[ Advanced Settings ]="))
-        .filter(|line| !is_filtered(line))
-        .map(|s| s.to_string())
-        .collect();
-
-    let rules = Acp::try_from(rule_lines)?;
-
-    if rules.is_empty() {
-        return Err(MyError::RulesEmpty {});
-    }
-
-    println!("# of rules found: {}", rules.len());
-    println!("rule capacity: {}", rules.capacity());
-    todo!("Implement analysis");
+fn parse_acp(file: &PathBuf, acp: args::Acp) {
+    todo!(
+        "Analyzing the whole access policy from file: {}",
+        file.display()
+    );
 }
