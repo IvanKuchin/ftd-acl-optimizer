@@ -73,7 +73,7 @@ pub struct TopKByOptimization {}
 #[derive(Subcommand, Debug)]
 /// Analyze the whole access policy from "show access-control-config"
 pub enum Acp {
-    /// Analyze and producereport of the whole access policy from "show access-control-config"
+    /// Analyze and produce report of the whole access policy from "show access-control-config"
     Analysis(AcpAnalysis),
 
     /// Get capacity optimization only for each rule in the access policy

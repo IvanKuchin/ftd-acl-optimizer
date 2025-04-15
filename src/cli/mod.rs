@@ -53,11 +53,11 @@ pub fn analyze_rule_capacity(fname: &PathBuf, rule_name: &str) -> Result<(), Cli
 
     println!("Rule name: {}", rule.get_name());
 
-    println!("\tcapacity:           {}", rule.capacity());
-    println!("\toptimized capacity: {}", rule.optimized_capacity());
+    println!("\t capacity:           {}", rule.capacity());
+    println!("\t optimized capacity: {}", rule.optimized_capacity());
 
     println!(
-        "\toptimization ratio: {:.2}%",
+        "\t optimization ratio: {:.2}%",
         100. - (rule.optimized_capacity() as f64 / rule.capacity() as f64) * 100.0
     );
 
