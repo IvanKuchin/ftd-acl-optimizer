@@ -9,12 +9,12 @@ pub enum CliError {
     Io(#[from] std::io::Error),
     #[error("Fail to parse rule: {0}")]
     Rule(#[from] crate::acp::rule::RuleError),
-    #[error("No rule found with name: {name}")]
+    #[error("Can't find access-control-policy or it is empty ({file})")]
+    AcpEmpty { file: String },
+    #[error("No rule found with name ({name})")]
     RuleEmpty { name: String },
     #[error("Fail to parse rules: {0}")]
     Acp(#[from] crate::acp::AcpError),
-    #[error("No rules found")]
-    AcpEmpty(),
 
     #[error("CLI parsing error: {0}")]
     Cli(#[from] utils::FileError),
@@ -42,8 +42,8 @@ pub fn analyze_rule_capacity(fname: &PathBuf, rule_name: &str) -> Result<(), Cli
     let acp = Acp::try_from(rule_lines)?;
 
     if acp.is_empty() {
-        return Err(CliError::RuleEmpty {
-            name: rule_name.to_string(),
+        return Err(CliError::AcpEmpty {
+            file: fname.to_string_lossy().to_string(),
         });
     }
 
@@ -76,7 +76,9 @@ fn analyze_policy(fname: &PathBuf) -> Result<(), CliError> {
     let acp = Acp::try_from(rule_lines)?;
 
     if acp.is_empty() {
-        return Err(CliError::AcpEmpty {});
+        return Err(CliError::AcpEmpty {
+            file: fname.to_string_lossy().to_string(),
+        });
     }
 
     println!("# of rules found: {}", acp.len());
