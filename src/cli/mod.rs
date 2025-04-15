@@ -4,7 +4,7 @@ use std::path::PathBuf;
 mod utils;
 
 #[derive(thiserror::Error, Debug)]
-pub enum MyError {
+pub enum CliError {
     #[error("IO Error: {0}")]
     Io(#[from] std::io::Error),
     #[error("Fail to parse rule: {0}")]
@@ -20,13 +20,13 @@ pub enum MyError {
     Cli(#[from] utils::FileError),
 }
 
-fn analyze_rule(fname: &PathBuf, rule_name: &str) -> Result<(), MyError> {
+fn analyze_rule(fname: &PathBuf, rule_name: &str) -> Result<(), CliError> {
     let rule_lines = utils::get_rule(fname, rule_name)?;
 
     let rules = Acp::try_from(rule_lines)?;
 
     if rules.is_empty() {
-        return Err(MyError::RuleEmpty {
+        return Err(CliError::RuleEmpty {
             name: rule_name.to_string(),
         });
     }
@@ -36,18 +36,18 @@ fn analyze_rule(fname: &PathBuf, rule_name: &str) -> Result<(), MyError> {
     todo!("Implement analysis");
 }
 
-pub fn analyze_rule_capacity(fname: &PathBuf, rule_name: &str) -> Result<(), MyError> {
+pub fn analyze_rule_capacity(fname: &PathBuf, rule_name: &str) -> Result<(), CliError> {
     let rule_lines = utils::get_rule(fname, rule_name)?;
 
     let acp = Acp::try_from(rule_lines)?;
 
     if acp.is_empty() {
-        return Err(MyError::RuleEmpty {
+        return Err(CliError::RuleEmpty {
             name: rule_name.to_string(),
         });
     }
 
-    let rule = acp.rule_by_name(rule_name).ok_or(MyError::RuleEmpty {
+    let rule = acp.rule_by_name(rule_name).ok_or(CliError::RuleEmpty {
         name: rule_name.to_string(),
     })?;
 
@@ -64,7 +64,7 @@ pub fn analyze_rule_capacity(fname: &PathBuf, rule_name: &str) -> Result<(), MyE
     Ok(())
 }
 
-fn analyze_policy(fname: &PathBuf) -> Result<(), MyError> {
+fn analyze_policy(fname: &PathBuf) -> Result<(), CliError> {
     let rule_lines: Vec<_> = std::fs::read_to_string(fname)?
         .lines()
         .skip_while(|line| !line.contains("-[ Rule: "))
@@ -76,7 +76,7 @@ fn analyze_policy(fname: &PathBuf) -> Result<(), MyError> {
     let acp = Acp::try_from(rule_lines)?;
 
     if acp.is_empty() {
-        return Err(MyError::AcpEmpty {});
+        return Err(CliError::AcpEmpty {});
     }
 
     println!("# of rules found: {}", acp.len());
