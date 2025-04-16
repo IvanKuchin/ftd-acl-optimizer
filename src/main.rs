@@ -32,13 +32,8 @@ fn main() {
 
 fn parse_rule(file: &PathBuf, rule: args::Rule) -> Result<(), AppError> {
     match rule {
-        args::Rule::Capacity(rule_name) => {
-            cli::analyze_rule_capacity(file, &rule_name.name)?;
-        }
-        args::Rule::RuleAnalysis(rule_name) => {
-            println!("Analyzing rule: {}", rule_name.name);
-            todo!("Implement rule analysis for: {}", rule_name.name);
-        }
+        args::Rule::Capacity(rule_name) => cli::analyze_rule_capacity(file, &rule_name.name)?,
+        args::Rule::Analysis(rule_name) => cli::analyze_rule(file, &rule_name.name)?,
     };
 
     Ok(())

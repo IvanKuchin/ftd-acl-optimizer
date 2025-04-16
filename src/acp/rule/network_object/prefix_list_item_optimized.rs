@@ -28,6 +28,10 @@ impl PrefixListItemOptimized {
         self.name = name;
     }
 
+    pub fn name(&self) -> &str {
+        &self.name
+    }
+
     pub fn capacity(&self) -> u64 {
         let start_ip = self.items.iter().map(|item| item.start_ip()).min().unwrap_or_else(|| panic!("Logic error: PrefixListItemOptimized ({}) should have at least one PrefixListItem, if this error is triggered, parsing logic must be fixed. Currently the only way to craft obj is from-trait which accepts correct object", self.name));
         let end_ip = self.items.iter().map(|item| item.end_ip()).max().unwrap_or_else(|| panic!("Logic error: PrefixListItemOptimized ({}) should have at least one PrefixListItem, if this error is triggered, parsing logic must be fixed. Currently the only way to craft obj is from-trait which accepts correct object", self.name));

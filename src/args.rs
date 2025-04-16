@@ -42,7 +42,7 @@ pub enum Rule {
     Capacity(RuleName),
 
     /// Get optimization report for a rule
-    RuleAnalysis(RuleName),
+    Analysis(RuleName),
 }
 
 #[derive(Args, Debug)]

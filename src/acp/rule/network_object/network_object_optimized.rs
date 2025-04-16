@@ -30,6 +30,10 @@ impl Builder {
 }
 
 impl NetworkObjectOptimized {
+    pub fn items(&self) -> &[PrefixListItemOptimized] {
+        &self.items
+    }
+
     pub fn capacity(&self) -> u64 {
         self.items.iter().map(|item| item.capacity()).sum()
     }

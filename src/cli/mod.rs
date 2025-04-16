@@ -1,5 +1,6 @@
-use crate::acp::{rule, Acp};
 use std::path::PathBuf;
+
+use crate::acp::Acp;
 
 mod utils;
 
@@ -20,24 +21,8 @@ pub enum CliError {
     Cli(#[from] utils::FileError),
 }
 
-fn analyze_rule(fname: &PathBuf, rule_name: &str) -> Result<(), CliError> {
-    let rule_lines = utils::get_rule(fname, rule_name)?;
-
-    let rules = Acp::try_from(rule_lines)?;
-
-    if rules.is_empty() {
-        return Err(CliError::RuleEmpty {
-            name: rule_name.to_string(),
-        });
-    }
-
-    println!("# of rules found: {}", rules.len());
-    println!("rule capacity: {}", rules.capacity());
-    todo!("Implement analysis");
-}
-
-pub fn analyze_rule_capacity(fname: &PathBuf, rule_name: &str) -> Result<(), CliError> {
-    let rule_lines = utils::get_rule(fname, rule_name)?;
+fn get_acp_rule<'a>(fname: &PathBuf, rule_name: &'a str) -> Result<Acp, CliError> {
+    let rule_lines = utils::get_rule_lines_from_file(fname, rule_name)?;
 
     let acp = Acp::try_from(rule_lines)?;
 
@@ -46,6 +31,35 @@ pub fn analyze_rule_capacity(fname: &PathBuf, rule_name: &str) -> Result<(), Cli
             file: fname.to_string_lossy().to_string(),
         });
     }
+
+    Ok(acp)
+}
+
+pub fn analyze_rule(fname: &PathBuf, rule_name: &str) -> Result<(), CliError> {
+    let acp = get_acp_rule(fname, rule_name)?;
+
+    let rule = acp.rule_by_name(rule_name).ok_or(CliError::RuleEmpty {
+        name: rule_name.to_string(),
+    })?;
+
+    println!("Rule name: {}", rule.get_name());
+
+    println!("\t capacity:           {}", rule.capacity());
+    println!("\t optimized capacity: {}", rule.optimized_capacity());
+
+    println!(
+        "\t optimization ratio: {:.2}%",
+        100. - (rule.optimized_capacity() as f64 / rule.capacity() as f64) * 100.0
+    );
+
+    let (src_networks_opt, dst_networks_opt) = rule.get_optimized_networks();
+    utils::print_networks_report(&src_networks_opt, &dst_networks_opt);
+
+    Ok(())
+}
+
+pub fn analyze_rule_capacity(fname: &PathBuf, rule_name: &str) -> Result<(), CliError> {
+    let acp = get_acp_rule(fname, rule_name)?;
 
     let rule = acp.rule_by_name(rule_name).ok_or(CliError::RuleEmpty {
         name: rule_name.to_string(),

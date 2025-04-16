@@ -1,4 +1,4 @@
-mod network_object;
+pub mod network_object;
 use std::collections::HashMap;
 
 use network_object::NetworkObject;
