@@ -141,9 +141,12 @@ fn optimize_prefixes(items: Vec<&PrefixListItem>) -> Vec<PrefixListItemOptimized
             optimized_item.set_name(new_name);
             optimized_item.append(next_item);
         } else {
-            current_item = next_item.clone();
+            if optimized_item.is_optimized() {
+                result.push(optimized_item);
+            } else {
+            }
 
-            result.push(optimized_item);
+            current_item = next_item.clone();
             optimized_item = PrefixListItemOptimized::from(next_item);
         }
     }
