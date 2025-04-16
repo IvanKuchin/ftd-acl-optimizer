@@ -53,7 +53,7 @@ pub fn analyze_rule(fname: &PathBuf, rule_name: &str) -> Result<(), CliError> {
     );
 
     let (src_networks_opt, dst_networks_opt) = rule.get_optimized_networks();
-    utils::print_networks_report(&src_networks_opt, &dst_networks_opt);
+    utils::print_optimization_report(&src_networks_opt, &dst_networks_opt);
 
     Ok(())
 }

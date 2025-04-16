@@ -48,7 +48,7 @@ pub fn get_rule_lines_from_file(
     Ok(rule_lines)
 }
 
-pub fn print_networks_report(
+pub fn print_optimization_report(
     src_networks_opt: &Option<NetworkObjectOptimized>,
     dst_networks_opt: &Option<NetworkObjectOptimized>,
 ) {
