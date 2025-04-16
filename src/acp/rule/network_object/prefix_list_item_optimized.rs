@@ -20,6 +20,10 @@ impl From<&PrefixListItem> for PrefixListItemOptimized {
 }
 
 impl PrefixListItemOptimized {
+    pub fn items(&self) -> &Vec<PrefixListItem> {
+        self.items.as_ref()
+    }
+
     pub fn append(&mut self, network_object: &PrefixListItem) {
         self.items.push(network_object.clone());
     }
@@ -169,6 +173,19 @@ mod tests {
     }
 
     #[test]
+    fn is_optimized_empty() {
+        let prefix_list_items = [PrefixListItem::from_str("192.168.0.3").unwrap()];
+
+        let mut optimized_item: PrefixListItemOptimized = (&prefix_list_items[0]).into();
+
+        prefix_list_items.iter().skip(1).for_each(|item| {
+            optimized_item.append(item);
+        });
+
+        assert!(!optimized_item.is_optimized());
+    }
+
+    #[test]
     fn is_optimized_success_1() {
         let prefix_list_items = [
             PrefixListItem::from_str("192.168.0.0-192.168.0.192").unwrap(),
@@ -245,8 +262,12 @@ mod tests {
     }
 
     #[test]
-    fn is_optimized_empty() {
-        let prefix_list_items = [PrefixListItem::from_str("192.168.0.3").unwrap()];
+    fn is_optimized_fail_6() {
+        let prefix_list_items = [
+            PrefixListItem::from_str("192.168.0.4").unwrap(),
+            PrefixListItem::from_str("192.168.0.3").unwrap(),
+            PrefixListItem::from_str("192.168.0.2").unwrap(),
+        ];
 
         let mut optimized_item: PrefixListItemOptimized = (&prefix_list_items[0]).into();
 
@@ -254,6 +275,7 @@ mod tests {
             optimized_item.append(item);
         });
 
-        assert!(!optimized_item.is_optimized());
+        assert!(optimized_item.is_optimized());
+        assert_eq!(optimized_item.capacity(), 2);
     }
 }
