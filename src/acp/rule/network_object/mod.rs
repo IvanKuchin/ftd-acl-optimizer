@@ -146,6 +146,7 @@ fn optimize_prefixes(items: Vec<&PrefixListItem>) -> Vec<PrefixListItemOptimized
                 result.push(optimized_item);
             } else {
                 // If the item is not optimized, push components to the result
+                // Note: flattening the optimized item into individual components might lead to unexpected behavior if preserving the grouped structure is desired.
                 for item in optimized_item.items() {
                     result.push(PrefixListItemOptimized::from(item));
                 }

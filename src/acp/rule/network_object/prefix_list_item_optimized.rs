@@ -20,7 +20,7 @@ impl From<&PrefixListItem> for PrefixListItemOptimized {
 }
 
 impl PrefixListItemOptimized {
-    pub fn items(&self) -> &Vec<PrefixListItem> {
+    pub fn items(&self) -> &[PrefixListItem] {
         self.items.as_ref()
     }
 
