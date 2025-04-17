@@ -149,6 +149,11 @@ fn optimize_l4_items(to_optimize: Vec<&ProtocolList>) -> Vec<ProtocolListOptimiz
             let (curr_start, curr_end) = current_item.get_ports();
             let (next_start, next_end) = next_item.get_ports();
 
+            println!(
+                "Current: {} - {} | Next: {} - {}",
+                curr_start, curr_end, next_start, next_end
+            );
+
             if next_start as u32 <= curr_end as u32 + 1 {
                 let verb = description::verb(curr_end as u32, next_start as u32, next_end as u32);
                 let new_name = format!(
@@ -1054,5 +1059,44 @@ mod tests {
         let optimized = optimize_l4_items(port_lists);
         dbg!(&optimized);
         assert_eq!(optimized.len(), 5);
+    }
+
+    #[test]
+    fn test_optimize_l4_items_length_5() {
+        let lines = vec![
+            "Destination Ports     : MyGroup1 (group)".to_string(),
+            "  HTTP2 (protocol 6, port 82)".to_string(),
+            "HTTP1 (protocol 6, port 81)".to_string(),
+            "HTTP (protocol 6, port 80)".to_string(),
+        ];
+        let port_object = ProtocolObject::try_from(&lines).unwrap();
+        let port_lists: Vec<&ProtocolList> = port_object
+            .items
+            .iter()
+            .flat_map(|item| item.collect_objects())
+            .collect();
+
+        let optimized = optimize_l4_items(port_lists);
+        assert_eq!(optimized.len(), 1);
+    }
+
+    #[test]
+    fn test_optimize_l4_items_length_6() {
+        let lines = vec![
+            "Destination Ports     : MyGroup1 (group)".to_string(),
+            "  HTTP2 (protocol 6, port 82)".to_string(),
+            "  AH (protocol 51)".to_string(),
+            "HTTP1 (protocol 6, port 81)".to_string(),
+            "HTTP (protocol 6, port 80)".to_string(),
+        ];
+        let port_object = ProtocolObject::try_from(&lines).unwrap();
+        let port_lists: Vec<&ProtocolList> = port_object
+            .items
+            .iter()
+            .flat_map(|item| item.collect_objects())
+            .collect();
+
+        let optimized = optimize_l4_items(port_lists);
+        assert_eq!(optimized.len(), 2);
     }
 }
