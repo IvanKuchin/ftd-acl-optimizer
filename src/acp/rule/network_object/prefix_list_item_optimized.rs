@@ -1,8 +1,8 @@
-use super::{
-    group::prefix_list::prefix_list_item::PrefixListItem, network_object_item::NetworkObjectItem,
-};
+use super::group::prefix_list::prefix_list_item::PrefixListItem;
 
-use crate::acp::rule::network_object::group::prefix_list::prefix_list_item::ip_range::IPRange;
+use super::group::prefix_list::prefix_list_item::ipv4::IPv4;
+
+use super::group::prefix_list::prefix_list_item::ip_range::IPRange;
 
 #[derive(Debug)]
 pub struct PrefixListItemOptimized {
@@ -20,8 +20,20 @@ impl From<&PrefixListItem> for PrefixListItemOptimized {
 }
 
 impl PrefixListItemOptimized {
+    pub fn name(&self) -> &str {
+        &self.name
+    }
+
     pub fn items(&self) -> &[PrefixListItem] {
         self.items.as_ref()
+    }
+
+    pub fn end_ip(&self) -> &IPv4 {
+        self.items
+            .iter()
+            .map(|item| item.end_ip())
+            .max()
+            .unwrap_or_else(|| panic!("Logic error: PrefixListItemOptimized ({}) should have at least one PrefixListItem, if this error is triggered, parsing logic must be fixed. Currently the only way to craft obj is from-trait which accepts correct object", self.name))
     }
 
     pub fn append(&mut self, network_object: &PrefixListItem) {
@@ -30,10 +42,6 @@ impl PrefixListItemOptimized {
 
     pub fn set_name(&mut self, name: String) {
         self.name = name;
-    }
-
-    pub fn name(&self) -> &str {
-        &self.name
     }
 
     pub fn capacity(&self) -> u64 {

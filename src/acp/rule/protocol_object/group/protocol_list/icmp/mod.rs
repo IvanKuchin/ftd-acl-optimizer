@@ -164,7 +164,6 @@ mod tests {
             .parse::<Icmp>()
             .unwrap();
 
-        dbg!(&icmp);
         assert_eq!(icmp.name, "ICMP-Name");
         assert_eq!(icmp.protocol, 58);
         assert_eq!(icmp.icmp_type, Some(3));
@@ -177,7 +176,6 @@ mod tests {
             .parse::<Icmp>()
             .unwrap();
 
-        dbg!(&icmp);
         assert_eq!(icmp.name, "ICMP-Name");
         assert_eq!(icmp.protocol, 1);
         assert_eq!(icmp.icmp_type, Some(3));

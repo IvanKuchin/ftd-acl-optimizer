@@ -291,7 +291,6 @@ mod tests {
     fn test_ip_range_with_whitespace() {
         let ip_range_str = " 192.168.1.1 - 192.168.1.10 ";
         let ip_range = ip_range_str.trim().parse::<IPRange>();
-        dbg!(&ip_range);
         assert!(ip_range.is_ok());
         let ip_range = ip_range.unwrap();
         assert_eq!(ip_range.name, ip_range_str.trim());

@@ -122,36 +122,22 @@ fn optimize_prefixes(items: Vec<&PrefixListItem>) -> Vec<PrefixListItemOptimized
     }
 
     let mut optimized_item = PrefixListItemOptimized::from(sorted[0]);
-    let mut current_item = sorted[0].clone();
 
     for next_item in sorted.into_iter().skip(1) {
-        let (_, curr_end) = (current_item.start_ip(), current_item.end_ip());
+        let curr_end = optimized_item.end_ip();
         let (next_start, next_end) = (next_item.start_ip(), next_item.end_ip());
-
-        println!(
-            "Current: {} - {} | Next: {} - {}",
-            current_item.get_name(),
-            curr_end,
-            next_item.get_name(),
-            next_end
-        );
 
         if next_start <= &curr_end.next() {
             use super::protocol_object::description;
             let verb = description::verb(curr_end.into(), next_start.into(), next_end.into());
 
-            let new_name = format!(
-                "{} {verb} {}",
-                current_item.get_name(),
-                next_item.get_name()
-            );
-
+            let new_name = format!("{} {verb} {}", optimized_item.name(), next_item.get_name());
             optimized_item.set_name(new_name);
+
             optimized_item.append(next_item);
         } else {
             result = push_items_to_vec(result, optimized_item);
 
-            current_item = next_item.clone();
             optimized_item = PrefixListItemOptimized::from(next_item);
         }
     }
@@ -165,13 +151,10 @@ fn push_items_to_vec(
     mut array: Vec<PrefixListItemOptimized>,
     item: PrefixListItemOptimized,
 ) -> Vec<PrefixListItemOptimized> {
-    println!("push_items_to_vec: {:?}", item);
     if item.is_optimized() {
-        println!("Item is optimized");
         // If the item is optimized, push it to the result
         array.push(item);
     } else {
-        println!("Item is not optimized");
         // If the item is not optimized, push components to the result
         // Note: flattening the optimized item into individual components might lead to unexpected behavior if preserving the grouped structure is desired.
         for sub_item in item.items() {
@@ -509,6 +492,7 @@ mod tests {
         assert_eq!(network_object.capacity(), 2);
         let optimized = network_object.optimize();
         assert_eq!(optimized.items().len(), 1);
+        assert_eq!(optimized.capacity(), 1);
     }
 
     #[test]
@@ -522,6 +506,7 @@ mod tests {
         assert_eq!(network_object.capacity(), 2);
         let optimized = network_object.optimize();
         assert_eq!(optimized.items().len(), 2);
+        assert_eq!(optimized.capacity(), 2);
     }
 
     #[test]
@@ -535,7 +520,7 @@ mod tests {
         let network_object = NetworkObject::try_from(&lines).unwrap();
         assert_eq!(network_object.capacity(), 3);
         let optimized = network_object.optimize();
-        dbg!(&optimized);
-        assert_eq!(optimized.items().len(), 2);
+        assert_eq!(optimized.items().len(), 1);
+        assert_eq!(optimized.capacity(), 2);
     }
 }

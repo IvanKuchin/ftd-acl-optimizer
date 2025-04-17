@@ -103,7 +103,6 @@ mod tests {
             "  INVALID_PORT".to_string(),
         ];
         let result = Group::try_from(&lines);
-        dbg!(&result);
         assert!(result.is_err());
         if let Err(GroupError::PortListError(protocol_list::PortListError::CommonError(
             protocol_list::tcp_udp::common::CommonError::Protocol(msg),

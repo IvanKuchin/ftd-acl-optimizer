@@ -6,7 +6,7 @@ use prefix::Prefix;
 pub mod ip_range;
 use ip_range::IPRange;
 
-mod ipv4;
+pub mod ipv4;
 use ipv4::IPv4;
 
 #[derive(Debug, Clone)]

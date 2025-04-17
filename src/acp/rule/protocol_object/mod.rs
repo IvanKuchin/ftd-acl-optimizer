@@ -889,7 +889,6 @@ mod tests {
 
         let optimized = optimize_l4_items(port_lists);
         assert_eq!(optimized.len(), 2);
-        dbg!(&optimized);
     }
 
     #[test]
@@ -1057,7 +1056,6 @@ mod tests {
             .collect();
 
         let optimized = optimize_l4_items(port_lists);
-        dbg!(&optimized);
         assert_eq!(optimized.len(), 5);
     }
 
