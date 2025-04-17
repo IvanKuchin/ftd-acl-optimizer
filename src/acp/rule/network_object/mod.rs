@@ -121,12 +121,20 @@ fn optimize_prefixes(items: Vec<&PrefixListItem>) -> Vec<PrefixListItemOptimized
         return result;
     }
 
+    let mut optimized_item = PrefixListItemOptimized::from(sorted[0]);
     let mut current_item = sorted[0].clone();
-    let mut optimized_item = PrefixListItemOptimized::from(&current_item);
 
     for next_item in sorted.into_iter().skip(1) {
         let (_, curr_end) = (current_item.start_ip(), current_item.end_ip());
         let (next_start, next_end) = (next_item.start_ip(), next_item.end_ip());
+
+        println!(
+            "Current: {} - {} | Next: {} - {}",
+            current_item.get_name(),
+            curr_end,
+            next_item.get_name(),
+            next_end
+        );
 
         if next_start <= &curr_end.next() {
             use super::protocol_object::description;
@@ -141,25 +149,37 @@ fn optimize_prefixes(items: Vec<&PrefixListItem>) -> Vec<PrefixListItemOptimized
             optimized_item.set_name(new_name);
             optimized_item.append(next_item);
         } else {
-            if optimized_item.is_optimized() {
-                // If the item is optimized, push it to the result
-                result.push(optimized_item);
-            } else {
-                // If the item is not optimized, push components to the result
-                // Note: flattening the optimized item into individual components might lead to unexpected behavior if preserving the grouped structure is desired.
-                for item in optimized_item.items() {
-                    result.push(PrefixListItemOptimized::from(item));
-                }
-            }
+            result = push_items_to_vec(result, optimized_item);
 
             current_item = next_item.clone();
             optimized_item = PrefixListItemOptimized::from(next_item);
         }
     }
 
-    result.push(optimized_item);
+    result = push_items_to_vec(result, optimized_item);
 
     result
+}
+
+fn push_items_to_vec(
+    mut array: Vec<PrefixListItemOptimized>,
+    item: PrefixListItemOptimized,
+) -> Vec<PrefixListItemOptimized> {
+    println!("push_items_to_vec: {:?}", item);
+    if item.is_optimized() {
+        println!("Item is optimized");
+        // If the item is optimized, push it to the result
+        array.push(item);
+    } else {
+        println!("Item is not optimized");
+        // If the item is not optimized, push components to the result
+        // Note: flattening the optimized item into individual components might lead to unexpected behavior if preserving the grouped structure is desired.
+        for sub_item in item.items() {
+            array.push(PrefixListItemOptimized::from(sub_item));
+        }
+    }
+
+    array
 }
 
 #[cfg(test)]
@@ -476,5 +496,46 @@ mod tests {
         assert_eq!(network_object.capacity(), 0);
         let optimized = network_object.optimize();
         assert_eq!(optimized.capacity(), 0);
+    }
+
+    #[test]
+    fn optimize_prefixes_1() {
+        let lines = vec![
+            "Source Networks       : Internal (group)".to_string(),
+            "  192.168.1.2".to_string(),
+            "  192.168.1.3".to_string(),
+        ];
+        let network_object = NetworkObject::try_from(&lines).unwrap();
+        assert_eq!(network_object.capacity(), 2);
+        let optimized = network_object.optimize();
+        assert_eq!(optimized.items().len(), 1);
+    }
+
+    #[test]
+    fn optimize_prefixes_2() {
+        let lines = vec![
+            "Source Networks       : Internal (group)".to_string(),
+            "  192.168.1.4".to_string(),
+            "  192.168.1.3".to_string(),
+        ];
+        let network_object = NetworkObject::try_from(&lines).unwrap();
+        assert_eq!(network_object.capacity(), 2);
+        let optimized = network_object.optimize();
+        assert_eq!(optimized.items().len(), 2);
+    }
+
+    #[test]
+    fn optimize_prefixes_3() {
+        let lines = vec![
+            "Source Networks       : Internal (group)".to_string(),
+            "  192.168.1.4".to_string(),
+            "  192.168.1.3".to_string(),
+            "  192.168.1.5".to_string(),
+        ];
+        let network_object = NetworkObject::try_from(&lines).unwrap();
+        assert_eq!(network_object.capacity(), 3);
+        let optimized = network_object.optimize();
+        dbg!(&optimized);
+        assert_eq!(optimized.items().len(), 2);
     }
 }
