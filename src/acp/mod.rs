@@ -35,7 +35,6 @@ impl TryFrom<Vec<String>> for Acp {
         let mut rules = vec![];
 
         while let Some(rule_lines) = reader.next_rule() {
-            // dbg!(&rule_lines);
             let rule = Rule::try_from(rule_lines)?;
             rules.push(rule);
         }

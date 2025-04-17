@@ -55,9 +55,6 @@ impl Reader {
             .collect();
         self.lines.drain(0..rule_title.len());
 
-        // dbg!(&rule_title);
-        // dbg!(&self.lines);
-
         let rule_body: Vec<_> = self
             .lines
             .iter()
@@ -65,9 +62,6 @@ impl Reader {
             .map(|s| s.to_string())
             .collect();
         self.lines.drain(0..rule_body.len());
-
-        // dbg!(&rule_body);
-        // dbg!(&self.lines);
 
         let rule_lines: Vec<_> = rule_title
             .iter()
