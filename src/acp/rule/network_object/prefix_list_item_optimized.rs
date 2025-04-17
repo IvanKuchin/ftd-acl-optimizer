@@ -20,6 +20,10 @@ impl From<&PrefixListItem> for PrefixListItemOptimized {
 }
 
 impl PrefixListItemOptimized {
+    pub fn items(&self) -> &[PrefixListItem] {
+        self.items.as_ref()
+    }
+
     pub fn append(&mut self, network_object: &PrefixListItem) {
         self.items.push(network_object.clone());
     }
@@ -35,6 +39,17 @@ impl PrefixListItemOptimized {
         let ip_range = IPRange::new(self.name.clone(), start_ip.clone(), end_ip.clone());
 
         ip_range.capacity()
+    }
+
+    pub fn is_optimized(&self) -> bool {
+        let optimized_capacity = self.capacity();
+
+        let mut original_capacity = 0;
+        for item in &self.items {
+            original_capacity += item.capacity();
+        }
+
+        optimized_capacity < original_capacity
     }
 }
 
@@ -155,5 +170,112 @@ mod tests {
         });
 
         assert_eq!(optimized_item.capacity(), 1);
+    }
+
+    #[test]
+    fn is_optimized_empty() {
+        let prefix_list_items = [PrefixListItem::from_str("192.168.0.3").unwrap()];
+
+        let mut optimized_item: PrefixListItemOptimized = (&prefix_list_items[0]).into();
+
+        prefix_list_items.iter().skip(1).for_each(|item| {
+            optimized_item.append(item);
+        });
+
+        assert!(!optimized_item.is_optimized());
+    }
+
+    #[test]
+    fn is_optimized_success_1() {
+        let prefix_list_items = [
+            PrefixListItem::from_str("192.168.0.0-192.168.0.192").unwrap(),
+            PrefixListItem::from_str("192.168.0.64-192.168.0.255").unwrap(),
+        ];
+
+        let mut optimized_item: PrefixListItemOptimized = (&prefix_list_items[0]).into();
+
+        prefix_list_items.iter().skip(1).for_each(|item| {
+            optimized_item.append(item);
+        });
+
+        assert!(optimized_item.is_optimized());
+    }
+
+    #[test]
+    fn is_optimized_fail_2() {
+        let prefix_list_items = [PrefixListItem::from_str("192.168.0.2-192.168.0.3").unwrap()];
+
+        let mut optimized_item: PrefixListItemOptimized = (&prefix_list_items[0]).into();
+
+        prefix_list_items.iter().skip(1).for_each(|item| {
+            optimized_item.append(item);
+        });
+
+        // This is a single item, so it should not be optimized
+        assert!(!optimized_item.is_optimized());
+    }
+
+    #[test]
+    fn is_optimized_fail_3() {
+        let prefix_list_items = [PrefixListItem::from_str("192.168.0.3-192.168.0.4").unwrap()];
+
+        let mut optimized_item: PrefixListItemOptimized = (&prefix_list_items[0]).into();
+
+        prefix_list_items.iter().skip(1).for_each(|item| {
+            optimized_item.append(item);
+        });
+
+        // This is a single item, so it should not be optimized
+        assert!(!optimized_item.is_optimized());
+    }
+
+    #[test]
+    fn is_optimized_success_4() {
+        let prefix_list_items = [
+            PrefixListItem::from_str("192.168.0.2").unwrap(),
+            PrefixListItem::from_str("192.168.0.3").unwrap(),
+        ];
+
+        let mut optimized_item: PrefixListItemOptimized = (&prefix_list_items[0]).into();
+
+        prefix_list_items.iter().skip(1).for_each(|item| {
+            optimized_item.append(item);
+        });
+
+        assert!(optimized_item.is_optimized());
+    }
+
+    #[test]
+    fn is_optimized_fail_5() {
+        let prefix_list_items = [
+            PrefixListItem::from_str("192.168.0.4").unwrap(),
+            PrefixListItem::from_str("192.168.0.3").unwrap(),
+        ];
+
+        let mut optimized_item: PrefixListItemOptimized = (&prefix_list_items[0]).into();
+
+        prefix_list_items.iter().skip(1).for_each(|item| {
+            optimized_item.append(item);
+        });
+
+        assert!(!optimized_item.is_optimized());
+    }
+
+    #[test]
+    fn is_optimized_fail_6() {
+        let prefix_list_items = [
+            PrefixListItem::from_str("192.168.0.4").unwrap(),
+            PrefixListItem::from_str("192.168.0.3").unwrap(),
+            PrefixListItem::from_str("192.168.0.2").unwrap(),
+        ];
+
+        let mut optimized_item: PrefixListItemOptimized = (&prefix_list_items[0]).into();
+
+        prefix_list_items.iter().skip(1).for_each(|item| {
+            optimized_item.append(item);
+        });
+
+        assert!(optimized_item.is_optimized());
+        assert_eq!(optimized_item.capacity(), 2);
     }
 }
