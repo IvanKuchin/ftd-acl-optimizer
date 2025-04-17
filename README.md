@@ -44,14 +44,14 @@ Then sum ACE across all rules and this will be a final number.
 
 What it would take to overflow 5% (300,000 ACE) of the biggest platform (SM-56) for large enterprise.
 
-If enterprise has a single app that spread between two on-prem DC and three major Cloud Providers (Azure, AWS, GCP). It has multiple source and destination networks to controk as well as ports. 
+If enterprise has a single app that spread between two on-prem highly available Data Centers and three major Cloud Providers (Azure, AWS, GCP). It has multiple source and destination networks to controk as well as ports. 
 * 2 x On-prem Data Centers, with each DC having 10 subnets
-* 3 x CSPs, with 19 subnets in each CSP (for example during long migration)
+* 3 x CSPs, with 10 subnets in each CSP (for example during long migration)
 * 20 source TCP/UDP ports
 * 25 destination TCP/UDP ports
 * no multicast
 
-`(2 x 10 On-prem) x (3 x 10 CSP) x 20 sec ports x 25 dst ports = 300,000 ACE`
+`(2 x 10 On-prem) x (3 x 10 CSP) x 20 src ports x 25 dst ports = 300,000 ACE`
 
 ## Optimizations
 
