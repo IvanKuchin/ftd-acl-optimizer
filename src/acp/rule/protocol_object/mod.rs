@@ -1,9 +1,7 @@
-use std::cmp::max;
 use std::str::FromStr;
 
 mod group;
-use group::protocol_list::ProtocolList;
-use group::protocol_list::{self, tcp_udp};
+use group::protocol_list::{self, ProtocolList};
 use group::Group;
 
 use super::network_object::utilities;
@@ -142,40 +140,27 @@ fn optimize_l4_items(to_optimize: Vec<&ProtocolList>) -> Vec<ProtocolListOptimiz
     }
 
     let mut optimized_items = ProtocolListOptimized::from(to_optimize[0]);
-    let mut current_item = to_optimize[0].clone();
 
     for next_item in to_optimize.into_iter().skip(1) {
-        if current_item.get_protocol() == next_item.get_protocol() {
-            let (curr_start, curr_end) = current_item.get_ports();
+        if optimized_items.get_protocol() == next_item.get_protocol() {
+            let (_, curr_end) = optimized_items.get_ports();
             let (next_start, next_end) = next_item.get_ports();
 
             if next_start as u32 <= curr_end as u32 + 1 {
                 let verb = description::verb(curr_end as u32, next_start as u32, next_end as u32);
                 let new_name = format!(
                     "{} {verb} {}",
-                    current_item.get_name(),
+                    optimized_items.get_name(),
                     next_item.get_name()
                 );
-
-                let tcp_udp_obj = tcp_udp::Builder::new()
-                    .name(new_name.clone())
-                    .protocol(current_item.get_protocol())
-                    .start(curr_start)
-                    .end(max(curr_end, next_end))
-                    .build();
-                current_item = ProtocolList::TcpUdp(tcp_udp_obj);
 
                 optimized_items.append(next_item);
                 optimized_items.set_name(new_name);
             } else {
-                current_item = next_item.clone();
-
                 result.push(optimized_items);
                 optimized_items = ProtocolListOptimized::from(next_item);
             }
         } else {
-            current_item = next_item.clone();
-
             result.push(optimized_items);
             optimized_items = ProtocolListOptimized::from(next_item);
         }
@@ -884,7 +869,6 @@ mod tests {
 
         let optimized = optimize_l4_items(port_lists);
         assert_eq!(optimized.len(), 2);
-        dbg!(&optimized);
     }
 
     #[test]
@@ -1052,7 +1036,45 @@ mod tests {
             .collect();
 
         let optimized = optimize_l4_items(port_lists);
-        dbg!(&optimized);
         assert_eq!(optimized.len(), 5);
+    }
+
+    #[test]
+    fn test_optimize_l4_items_length_5() {
+        let lines = vec![
+            "Destination Ports     : MyGroup1 (group)".to_string(),
+            "  HTTP2 (protocol 6, port 82)".to_string(),
+            "HTTP1 (protocol 6, port 81)".to_string(),
+            "HTTP (protocol 6, port 80)".to_string(),
+        ];
+        let port_object = ProtocolObject::try_from(&lines).unwrap();
+        let port_lists: Vec<&ProtocolList> = port_object
+            .items
+            .iter()
+            .flat_map(|item| item.collect_objects())
+            .collect();
+
+        let optimized = optimize_l4_items(port_lists);
+        assert_eq!(optimized.len(), 1);
+    }
+
+    #[test]
+    fn test_optimize_l4_items_length_6() {
+        let lines = vec![
+            "Destination Ports     : MyGroup1 (group)".to_string(),
+            "  HTTP2 (protocol 6, port 82)".to_string(),
+            "  AH (protocol 51)".to_string(),
+            "HTTP1 (protocol 6, port 81)".to_string(),
+            "HTTP (protocol 6, port 80)".to_string(),
+        ];
+        let port_object = ProtocolObject::try_from(&lines).unwrap();
+        let port_lists: Vec<&ProtocolList> = port_object
+            .items
+            .iter()
+            .flat_map(|item| item.collect_objects())
+            .collect();
+
+        let optimized = optimize_l4_items(port_lists);
+        assert_eq!(optimized.len(), 2);
     }
 }

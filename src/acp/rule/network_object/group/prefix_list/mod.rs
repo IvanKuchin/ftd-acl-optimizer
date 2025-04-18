@@ -166,7 +166,6 @@ mod tests {
     fn test_invalid_prefix_list_close_parenthesis() {
         let line = "RFC1918 (  )10.0.0.0/32";
         let result = PrefixList::from_str(line);
-        dbg!(&result);
         assert!(result.is_err());
     }
 

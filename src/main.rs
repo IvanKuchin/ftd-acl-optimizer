@@ -1,92 +1,58 @@
-use acp::Acp;
+use clap::Parser;
 use std::path::PathBuf;
 
 pub mod acp;
 
-use clap::Parser;
-
 mod args;
+mod cli;
 
 #[derive(thiserror::Error, Debug)]
-pub enum MyError {
-    #[error("IO Error: {0}")]
-    Io(#[from] std::io::Error),
-    #[error("Fail to parse rule: {0}")]
-    Rule(#[from] acp::rule::RuleError),
-    #[error("Fail to parse rules: {0}")]
-    Rules(#[from] acp::AcpError),
-    #[error("No rule found with name: {name}")]
-    RuleEmpty { name: String },
-    #[error("No rules found")]
-    RulesEmpty(),
-    #[error("Unknown error: {0}")]
-    Unknown(String),
+pub enum AppError {
+    #[error("Fail to run app due to rule analysis error: {0}")]
+    Rule(#[from] cli::CliError),
 }
 
 fn main() {
     let args = args::AppArgs::parse();
+    let file = args.file;
 
-    match args.subcommand {
-        args::SubCommand::Analyze(analyze_args) => {
-            if let Some(rule) = analyze_args.rule {
-                match analyze_rule(&analyze_args.file, &rule) {
-                    Ok(()) => {}
-                    Err(e) => println!("Analysis failed: {}", e),
-                }
-            } else {
-                match analyze_policy(&analyze_args.file) {
-                    Ok(()) => {}
-                    Err(e) => println!("Analysis failed: {}", e),
-                }
-            }
-        }
+    let err = match args.subcommand {
+        args::Verb::Get(entity) => match entity {
+            args::Entity::Rule(rule) => parse_rule(&file, rule),
+            args::Entity::TopK(topk) => parse_topk(&file, topk),
+            args::Entity::Acp(acp) => parse_acp(&file, acp),
+        },
+    };
+
+    if let Err(e) = err {
+        eprintln!("Error: {}", e);
+        std::process::exit(1);
     }
 }
 
-fn is_filtered(line: &str) -> bool {
-    line.contains("Object missing: ") || line.contains("")
+fn parse_rule(file: &PathBuf, action: args::Rule) -> Result<(), AppError> {
+    match action {
+        args::Rule::Capacity(rule_name) => cli::analyze_rule_capacity(file, &rule_name.name)?,
+        args::Rule::Analysis(rule_name) => cli::analyze_rule(file, &rule_name.name)?,
+    };
+
+    Ok(())
 }
 
-fn analyze_rule(fname: &PathBuf, rule_name: &str) -> Result<(), MyError> {
-    let rule_lines: Vec<_> = std::fs::read_to_string(fname)?
-        .lines()
-        .skip_while(|line| !line.contains(&format!("Rule: {}", rule_name)))
-        .take_while(|line| {
-            !line.contains("Rule: ") || line.contains(&format!("Rule: {}", rule_name))
-        })
-        .filter(|line| !is_filtered(line))
-        .map(|s| s.to_string())
-        .collect();
+fn parse_topk(file: &PathBuf, action: args::TopK) -> Result<(), AppError> {
+    match action {
+        args::TopK::ByCapacity(_) => cli::analyze_topk_by_capacity(file, 5)?,
+        args::TopK::ByOptimization(_) => cli::analyze_topk_by_optimization(file, 5)?,
+    };
 
-    let rules = Acp::try_from(rule_lines)?;
-
-    if rules.is_empty() {
-        return Err(MyError::RuleEmpty {
-            name: rule_name.to_string(),
-        });
-    }
-
-    println!("# of rules found: {}", rules.len());
-    println!("rule capacity: {}", rules.capacity());
-    todo!("Implement analysis");
+    Ok(())
 }
 
-fn analyze_policy(fname: &PathBuf) -> Result<(), MyError> {
-    let rule_lines: Vec<_> = std::fs::read_to_string(fname)?
-        .lines()
-        .skip_while(|line| !line.contains("-[ Rule: "))
-        .take_while(|line| !line.contains("=[ Advanced Settings ]="))
-        .filter(|line| !is_filtered(line))
-        .map(|s| s.to_string())
-        .collect();
+fn parse_acp(file: &PathBuf, action: args::Acp) -> Result<(), AppError> {
+    match action {
+        args::Acp::Capacity(_) => cli::analyze_acp_capacity(file)?,
+        args::Acp::Analysis(_) => cli::analyze_acp(file)?,
+    };
 
-    let rules = Acp::try_from(rule_lines)?;
-
-    if rules.is_empty() {
-        return Err(MyError::RulesEmpty {});
-    }
-
-    println!("# of rules found: {}", rules.len());
-    println!("rule capacity: {}", rules.capacity());
-    todo!("Implement analysis");
+    Ok(())
 }

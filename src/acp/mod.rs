@@ -35,7 +35,6 @@ impl TryFrom<Vec<String>> for Acp {
         let mut rules = vec![];
 
         while let Some(rule_lines) = reader.next_rule() {
-            // dbg!(&rule_lines);
             let rule = Rule::try_from(rule_lines)?;
             rules.push(rule);
         }
@@ -47,5 +46,21 @@ impl TryFrom<Vec<String>> for Acp {
 impl Acp {
     pub fn capacity(&self) -> u64 {
         self.iter().map(|r| r.capacity()).sum()
+    }
+
+    pub fn optimized_capacity(&self) -> u64 {
+        self.iter().map(|r| r.optimized_capacity()).sum()
+    }
+
+    pub fn rule_count(&self) -> usize {
+        self.len()
+    }
+
+    pub fn rule_by_name(&self, rule_name: &str) -> Option<&Rule> {
+        self.iter().find(|r| r.get_name() == rule_name)
+    }
+
+    pub fn rule_by_idx(&self, idx: usize) -> Option<&Rule> {
+        self.get(idx)
     }
 }
