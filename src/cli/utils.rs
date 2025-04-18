@@ -8,6 +8,8 @@ pub enum FileError {
     Io(#[from] std::io::Error),
     #[error("No rule found with name: {name}")]
     RuleEmpty { name: String },
+    #[error("No access control policy found in file: {file}")]
+    AcpEmpty { file: String },
 }
 
 pub fn is_filtered(line: &str) -> bool {
@@ -24,28 +26,23 @@ fn read_file(fname: &PathBuf) -> Result<Vec<String>, std::io::Error> {
     Ok(content)
 }
 
-pub fn get_rule_lines_from_file(
-    fname: &PathBuf,
-    rule_name: &str,
-) -> Result<Vec<String>, FileError> {
+pub fn read_acp_from_file(fname: &PathBuf) -> Result<Vec<String>, FileError> {
     let content = read_file(fname)?;
 
-    let rule_lines: Vec<_> = content
+    let acp: Vec<_> = content
         .iter()
-        .skip_while(|line| !line.contains(&format!("Rule: {}", rule_name)))
-        .take_while(|line| {
-            !line.contains("Rule: ") || line.contains(&format!("Rule: {}", rule_name))
-        })
+        .skip_while(|line| !line.contains("--[ Rule: "))
+        .take_while(|line| !line.contains("==[ Advanced Settings ]=="))
         .cloned()
         .collect();
 
-    if rule_lines.is_empty() {
-        return Err(FileError::RuleEmpty {
-            name: rule_name.to_string(),
+    if acp.is_empty() {
+        return Err(FileError::AcpEmpty {
+            file: fname.to_string_lossy().to_string(),
         });
     }
 
-    Ok(rule_lines)
+    Ok(acp)
 }
 
 pub fn print_optimization_report(
@@ -53,20 +50,20 @@ pub fn print_optimization_report(
     dst_networks_opt: &Option<NetworkObjectOptimized>,
 ) {
     if let Some(src_networks) = src_networks_opt {
-        let nets = get_optimized_elements(src_networks);
+        let nets = get_optimized_elements_name(src_networks);
 
         if !nets.is_empty() {
-            println!("\n\t --- Source networks ---");
+            println!("\n\t --- {} ---", src_networks.name());
             for net in nets.iter() {
                 println!("\t\t {}", net);
             }
         }
     }
     if let Some(dst_networks) = dst_networks_opt {
-        let nets = get_optimized_elements(dst_networks);
+        let nets = get_optimized_elements_name(dst_networks);
 
         if !nets.is_empty() {
-            println!("\n\t --- Destination networks ---");
+            println!("\n\t --- {} ---", dst_networks.name());
             for net in nets.iter() {
                 println!("\t\t {}", net);
             }
@@ -74,7 +71,7 @@ pub fn print_optimization_report(
     }
 }
 
-fn get_optimized_elements(network_object: &NetworkObjectOptimized) -> Vec<String> {
+fn get_optimized_elements_name(network_object: &NetworkObjectOptimized) -> Vec<String> {
     let result = network_object
         .items()
         .iter()

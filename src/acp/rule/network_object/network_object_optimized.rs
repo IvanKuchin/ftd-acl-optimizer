@@ -2,13 +2,13 @@ use super::prefix_list_item_optimized::PrefixListItemOptimized;
 
 #[derive(Debug)]
 pub struct NetworkObjectOptimized {
-    pub name: String,
-    pub items: Vec<PrefixListItemOptimized>,
+    name: String,
+    items: Vec<PrefixListItemOptimized>,
 }
 
 pub struct Builder {
-    pub name: Option<String>,
-    pub items: Vec<PrefixListItemOptimized>,
+    name: Option<String>,
+    items: Vec<PrefixListItemOptimized>,
 }
 
 impl Builder {
@@ -30,6 +30,10 @@ impl Builder {
 }
 
 impl NetworkObjectOptimized {
+    pub fn name(&self) -> &str {
+        &self.name
+    }
+
     pub fn items(&self) -> &[PrefixListItemOptimized] {
         &self.items
     }

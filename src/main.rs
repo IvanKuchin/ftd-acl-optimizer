@@ -30,8 +30,8 @@ fn main() {
     }
 }
 
-fn parse_rule(file: &PathBuf, rule: args::Rule) -> Result<(), AppError> {
-    match rule {
+fn parse_rule(file: &PathBuf, action: args::Rule) -> Result<(), AppError> {
+    match action {
         args::Rule::Capacity(rule_name) => cli::analyze_rule_capacity(file, &rule_name.name)?,
         args::Rule::Analysis(rule_name) => cli::analyze_rule(file, &rule_name.name)?,
     };
@@ -39,13 +39,20 @@ fn parse_rule(file: &PathBuf, rule: args::Rule) -> Result<(), AppError> {
     Ok(())
 }
 
-fn parse_topk(file: &PathBuf, topk: args::TopK) -> Result<(), AppError> {
-    todo!("Analyzing top-k rules from file: {}", file.display());
+fn parse_topk(file: &PathBuf, action: args::TopK) -> Result<(), AppError> {
+    match action {
+        args::TopK::ByCapacity(nop) => cli::analyze_topk_by_capacity(file, 5)?,
+        args::TopK::ByOptimization(nop) => cli::analyze_topk_by_optimization(file, 5)?,
+    };
+
+    Ok(())
 }
 
-fn parse_acp(file: &PathBuf, acp: args::Acp) -> Result<(), AppError> {
-    todo!(
-        "Analyzing the whole access policy from file: {}",
-        file.display()
-    );
+fn parse_acp(file: &PathBuf, action: args::Acp) -> Result<(), AppError> {
+    match action {
+        args::Acp::Capacity(nop) => cli::analyze_acp_capacity(file)?,
+        args::Acp::Analysis(nop) => cli::analyze_acp(file)?,
+    };
+
+    Ok(())
 }
