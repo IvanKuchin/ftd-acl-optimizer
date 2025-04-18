@@ -41,8 +41,8 @@ fn parse_rule(file: &PathBuf, action: args::Rule) -> Result<(), AppError> {
 
 fn parse_topk(file: &PathBuf, action: args::TopK) -> Result<(), AppError> {
     match action {
-        args::TopK::ByCapacity(nop) => cli::analyze_topk_by_capacity(file, 5)?,
-        args::TopK::ByOptimization(nop) => cli::analyze_topk_by_optimization(file, 5)?,
+        args::TopK::ByCapacity(_) => cli::analyze_topk_by_capacity(file, 5)?,
+        args::TopK::ByOptimization(_) => cli::analyze_topk_by_optimization(file, 5)?,
     };
 
     Ok(())
@@ -50,8 +50,8 @@ fn parse_topk(file: &PathBuf, action: args::TopK) -> Result<(), AppError> {
 
 fn parse_acp(file: &PathBuf, action: args::Acp) -> Result<(), AppError> {
     match action {
-        args::Acp::Capacity(nop) => cli::analyze_acp_capacity(file)?,
-        args::Acp::Analysis(nop) => cli::analyze_acp(file)?,
+        args::Acp::Capacity(_) => cli::analyze_acp_capacity(file)?,
+        args::Acp::Analysis(_) => cli::analyze_acp(file)?,
     };
 
     Ok(())
