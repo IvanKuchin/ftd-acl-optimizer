@@ -6,7 +6,6 @@ use super::ipv4::{IPv4, IPv4Error};
 pub struct Prefix {
     name: String,
     start: IPv4,
-    mask_length: u8,
     end: IPv4,
 }
 
@@ -46,23 +45,13 @@ impl FromStr for Prefix {
                     ));
                 }
                 let end = start.get_broadcast(mask_length);
-                Ok(Prefix {
-                    name,
-                    start,
-                    mask_length,
-                    end,
-                })
+                Ok(Prefix { name, start, end })
             }
             1 => {
                 let start = parts[0].parse::<IPv4>()?;
                 let mask_length = 32;
                 let end = start.get_broadcast(mask_length);
-                Ok(Prefix {
-                    name,
-                    start,
-                    mask_length,
-                    end,
-                })
+                Ok(Prefix { name, start, end })
             }
             _ => Err(PrefixError::General(
                 format!(
@@ -107,7 +96,6 @@ impl Builder {
         Prefix {
             name: self.name,
             start: self.start,
-            mask_length: self.mask_length,
             end,
         }
     }
@@ -125,7 +113,7 @@ mod tests {
         let prefix = prefix.unwrap();
         assert_eq!(prefix.name, "192.168.0.0/24");
         assert_eq!(prefix.start.0, 0xC0A80000);
-        assert_eq!(prefix.mask_length, 24);
+        assert_eq!(prefix.end.0, 0xC0A800FF);
     }
 
     #[test]
@@ -136,7 +124,7 @@ mod tests {
         let prefix = prefix.unwrap();
         assert_eq!(prefix.name, "192.168.0.0");
         assert_eq!(prefix.start.0, 0xC0A80000);
-        assert_eq!(prefix.mask_length, 32);
+        assert_eq!(prefix.end.0, 0xC0A80000);
     }
 
     #[test]
@@ -207,17 +195,17 @@ mod tests {
         let prefix_str = "10.0.0.0/16";
         let prefix = prefix_str.parse::<Prefix>().unwrap();
         assert_eq!(prefix.start.0, 0x0A000000);
-        assert_eq!(prefix.mask_length, 16);
+        assert_eq!(prefix.end.0, 0x0A00FFFF);
     }
 
     #[test]
     fn test_prefix_with_boundary_length() {
         let prefix_str = "10.0.0.0/1";
         let prefix = prefix_str.parse::<Prefix>().unwrap();
-        assert_eq!(prefix.mask_length, 1);
+        assert_eq!(prefix.end.0, 0x7FFFFFFF);
 
         let prefix_str = "10.0.0.0/32";
         let prefix = prefix_str.parse::<Prefix>().unwrap();
-        assert_eq!(prefix.mask_length, 32);
+        assert_eq!(prefix.end.0, 0x0A000000);
     }
 }

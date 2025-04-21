@@ -5,7 +5,7 @@ use prefix_list::PrefixList;
 
 #[derive(Debug, Clone)]
 pub struct Group {
-    name: String,
+    _name: String,
     prefix_lists: Vec<PrefixList>,
 }
 
@@ -50,7 +50,10 @@ impl TryFrom<&Vec<String>> for Group {
                 }
             }
 
-            Ok(Self { name, prefix_lists })
+            Ok(Self {
+                _name: name,
+                prefix_lists,
+            })
         } else {
             Err(GroupError::General(
                 "Invalid network group format.".to_string(),
@@ -60,10 +63,6 @@ impl TryFrom<&Vec<String>> for Group {
 }
 
 impl Group {
-    pub fn get_name(&self) -> &str {
-        &self.name
-    }
-
     pub fn get_prefix_lists(&self) -> &Vec<PrefixList> {
         &self.prefix_lists
     }
@@ -92,7 +91,7 @@ mod tests {
         ];
 
         let group = Group::try_from(&lines).unwrap();
-        assert_eq!(group.name, "Internal");
+        assert_eq!(group._name, "Internal");
         assert_eq!(group.prefix_lists.len(), 8);
     }
 
@@ -127,7 +126,7 @@ mod tests {
         ];
 
         let group = Group::try_from(&lines).unwrap();
-        assert_eq!(group.name, "Internal");
+        assert_eq!(group._name, "Internal");
         assert_eq!(group.prefix_lists.len(), 0);
     }
 
@@ -136,7 +135,7 @@ mod tests {
         let lines = vec!["Internal (group)".to_string()];
 
         let group = Group::try_from(&lines).unwrap();
-        assert_eq!(group.name, "Internal");
+        assert_eq!(group._name, "Internal");
         assert_eq!(group.prefix_lists.len(), 0);
     }
 

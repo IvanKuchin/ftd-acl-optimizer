@@ -16,7 +16,7 @@ pub mod description;
 
 #[derive(Debug)]
 pub struct ProtocolObject {
-    name: String,
+    _name: String,
     items: Vec<ProtocolObjectItem>,
 }
 
@@ -58,7 +58,7 @@ impl TryFrom<&Vec<String>> for ProtocolObject {
             idx += obj_lines_count;
         }
 
-        Ok(ProtocolObject { name, items })
+        Ok(ProtocolObject { _name: name, items })
     }
 }
 
@@ -200,7 +200,7 @@ mod tests {
         let result = ProtocolObject::try_from(&lines);
         assert!(result.is_ok());
         let port_object = result.unwrap();
-        assert_eq!(port_object.name, "Destination Ports");
+        assert_eq!(port_object._name, "Destination Ports");
         assert_eq!(port_object.items.len(), 1);
         match &port_object.items[0] {
             ProtocolObjectItem::ProtocolList(port_list) => {
@@ -220,7 +220,7 @@ mod tests {
         let result = ProtocolObject::try_from(&lines);
         assert!(result.is_ok());
         let port_object = result.unwrap();
-        assert_eq!(port_object.name, "Destination Ports");
+        assert_eq!(port_object._name, "Destination Ports");
         assert_eq!(port_object.items.len(), 1);
         match &port_object.items[0] {
             ProtocolObjectItem::Group(group) => {
@@ -243,7 +243,7 @@ mod tests {
         let result = ProtocolObject::try_from(&lines);
         assert!(result.is_ok());
         let port_object = result.unwrap();
-        assert_eq!(port_object.name, "Destination Ports");
+        assert_eq!(port_object._name, "Destination Ports");
         assert_eq!(port_object.items.len(), 3);
         match &port_object.items[0] {
             ProtocolObjectItem::Group(group) => {

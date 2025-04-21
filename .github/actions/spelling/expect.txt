@@ -11,6 +11,8 @@ destomatopm
 dns
 EAEB
 EIGRP
+FFFF
+FFFFFFF
 FFFFFFFF
 FPR
 ftd
