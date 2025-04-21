@@ -1,4 +1,4 @@
-use std::{str::FromStr, u8};
+use std::str::FromStr;
 
 use super::{
     ipv4::{IPv4, IPv4Error},

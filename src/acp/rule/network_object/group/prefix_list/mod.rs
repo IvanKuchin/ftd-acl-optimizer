@@ -5,7 +5,7 @@ use prefix_list_item::PrefixListItem;
 
 #[derive(Debug, Clone)]
 pub struct PrefixList {
-    name: String,
+    _name: String,
     items: Vec<PrefixListItem>,
 }
 
@@ -59,7 +59,7 @@ impl FromStr for PrefixList {
                 })
                 .collect::<Result<Vec<_>, _>>()?;
 
-            Ok(Self { name, items })
+            Ok(Self { _name: name, items })
         } else if !line.contains("(") && !line.contains(")") {
             let name = line.to_string();
             let items = vec![line
@@ -71,7 +71,7 @@ impl FromStr for PrefixList {
                 return Err(PrefixListError::General("Empty prefix list.".to_string()));
             }
 
-            Ok(Self { name, items })
+            Ok(Self { _name: name, items })
         } else {
             return Err(PrefixListError::General(format!(
                 "Invalid prefix list format {}",
@@ -82,10 +82,6 @@ impl FromStr for PrefixList {
 }
 
 impl PrefixList {
-    pub fn get_name(&self) -> &str {
-        &self.name
-    }
-
     pub fn get_items(&self) -> &Vec<PrefixListItem> {
         &self.items
     }
@@ -110,7 +106,7 @@ mod tests {
         assert!(prefix_list.is_ok());
         let prefix_list = prefix_list.unwrap();
         assert!(prefix_list.items.len() == 4);
-        assert_eq!(prefix_list.name, "RFC1918");
+        assert_eq!(prefix_list._name, "RFC1918");
     }
 
     #[test]
@@ -120,7 +116,7 @@ mod tests {
         assert!(prefix_list.is_ok());
         let prefix_list = prefix_list.unwrap();
         assert!(prefix_list.items.len() == 1);
-        assert_eq!(prefix_list.name, "10.0.0.0/8");
+        assert_eq!(prefix_list._name, "10.0.0.0/8");
     }
 
     #[test]
@@ -130,7 +126,7 @@ mod tests {
         assert!(prefix_list.is_ok());
         let prefix_list = prefix_list.unwrap();
         assert!(prefix_list.items.len() == 1);
-        assert_eq!(prefix_list.name, "10.11.12.13");
+        assert_eq!(prefix_list._name, "10.11.12.13");
     }
 
     #[test]
@@ -185,7 +181,7 @@ mod tests {
     fn test_invalid_prefix_list_with_whitespace() {
         let line = "   RFC1918   ( 10.0.0.0/8 , 172.16.0.0/12,  192.168.0.0/16  )  ";
         let prefix_list = PrefixList::from_str(line).unwrap();
-        assert_eq!(prefix_list.name, "RFC1918");
+        assert_eq!(prefix_list._name, "RFC1918");
         assert_eq!(prefix_list.items.len(), 3);
     }
 

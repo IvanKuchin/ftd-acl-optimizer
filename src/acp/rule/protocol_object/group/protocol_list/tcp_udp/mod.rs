@@ -12,13 +12,6 @@ pub struct TcpUdp {
     end: u16,
 }
 
-pub struct Builder {
-    name: Option<String>,
-    protocol: Option<u8>,
-    start: Option<u16>,
-    end: Option<u16>,
-}
-
 #[derive(thiserror::Error, Debug)]
 pub enum TcpUdpError {
     #[error("Failed to parse port list: {0}")]
