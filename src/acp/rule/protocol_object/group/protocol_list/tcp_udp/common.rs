@@ -69,13 +69,13 @@ pub fn parse_protocol(s: &str) -> Result<u8, CommonError> {
     let protocol = protocol
         .strip_prefix("protocol")
         .ok_or_else(|| {
-            CommonError::Protocol(format!("Missing 'protocol' prefix in: ({})", protocol))
+            CommonError::Protocol(format!("Missing 'protocol' prefix {} in {}", protocol, s))
         })?
         .trim();
 
-    let protocol_val = protocol
-        .parse()
-        .map_err(|_| CommonError::Protocol(format!("Invalid protocol number {}", protocol)))?;
+    let protocol_val = protocol.parse().map_err(|_| {
+        CommonError::Protocol(format!("Invalid protocol number {} in {}", protocol, s))
+    })?;
 
     Ok(protocol_val)
 }
