@@ -14,7 +14,7 @@ pub enum CliError {
     AcpEmpty { file: String },
     #[error("No rule found with name ({name})")]
     RuleEmpty { name: String },
-    #[error("Failure in acp parsing: {0}")]
+    #[error("Fail to parse access control policy: {0}")]
     Acp(#[from] crate::acp::AcpError),
 
     #[error("CLI parsing error: {0}")]
