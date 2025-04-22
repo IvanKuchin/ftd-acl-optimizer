@@ -9,9 +9,9 @@ use std::convert::TryFrom;
 
 #[derive(thiserror::Error, Debug)]
 pub enum AcpError {
-    #[error("Fail to parse rules: {0}")]
+    #[error("Fail to parse access control policy {0}")]
     General(String),
-    #[error("Failed to parse rule: {0}")]
+    #[error("Fail to parse access control policy: {0}")]
     ParseRule(#[from] rule::RuleError),
 }
 

@@ -108,7 +108,10 @@ mod tests {
             protocol_list::tcp_udp::common::CommonError::Protocol(msg),
         ))) = result
         {
-            assert_eq!(msg, "Missing 'protocol' prefix in: (INVALID_PORT)");
+            assert_eq!(
+                msg,
+                "Missing 'protocol' prefix INVALID_PORT in INVALID_PORT"
+            );
         } else {
             panic!("Expected GroupError::PortListError");
         }
