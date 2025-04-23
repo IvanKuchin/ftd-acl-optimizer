@@ -16,9 +16,37 @@ pub fn is_filtered(line: &str) -> bool {
     line.contains("Object missing: ") || line.contains("")
 }
 
+/// Read a file and merge lines that are part of the same entry.
+/// For example:
+///  OBJ-10.223.149.185-198 (10.223.149.185-10.223.149.
+///  198)
+/// Should be merged to:
+///  OBJ-10.223.149.185-198 (10.223.149.185-10.223.149.198)
+pub fn read_and_merge_lines(fname: &PathBuf) -> Result<Vec<String>, std::io::Error> {
+    let content = std::fs::read_to_string(fname)?;
+    let mut result: Vec<String> = Vec::new();
+
+    for line in content.lines() {
+        if let Some(last) = result.last_mut() {
+            if line
+                .chars()
+                .all(|c| c.is_numeric() || c == '.' || c == '/' || c == ')')
+            {
+                // Merge with the previous line
+                last.push_str(line);
+                continue;
+            }
+        }
+        // Add the line as a new entry
+        result.push(line.to_string());
+    }
+
+    Ok(result)
+}
+
 fn read_file(fname: &PathBuf) -> Result<Vec<String>, std::io::Error> {
-    let content: Vec<_> = std::fs::read_to_string(fname)?
-        .lines()
+    let content: Vec<_> = read_and_merge_lines(fname)?
+        .into_iter()
         .filter(|line| !is_filtered(line))
         .map(|s| s.to_string())
         .collect();
