@@ -78,10 +78,12 @@ impl FromStr for ProtocolList {
 impl ProtocolList {
     /// Parses a string into a ProtocolList, expanding "protocol any" to both TCP and UDP.
     pub fn from_str_expanded(s: &str) -> Result<Vec<Self>, PortListError> {
-        let expanded_protocols = if s.contains("protocol any, port ") {
+        const PROTOCOL_ANY_PORT: &str = "protocol any, port ";
+
+        let expanded_protocols = if s.contains(PROTOCOL_ANY_PORT) {
             vec![
-                s.replace("protocol any, port ", "protocol 6, port "),
-                s.replace("protocol any, port ", "protocol 17, port "),
+                s.replace(PROTOCOL_ANY_PORT, "protocol 6, port "),
+                s.replace(PROTOCOL_ANY_PORT, "protocol 17, port "),
             ]
         } else {
             vec![s.to_string()]
