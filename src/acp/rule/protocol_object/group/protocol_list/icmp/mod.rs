@@ -144,6 +144,11 @@ fn parse_type_and_code(s: &str) -> Result<(Option<u8>, Option<u8>), IcmpError> {
 
             let code = parts.next().unwrap().trim();
             let code = code.split_whitespace().last().unwrap();
+
+            if code.to_lowercase() == "any" {
+                return Ok((Some(icmp_type), None));
+            }
+
             let code = code.parse().map_err(|_| {
                 IcmpError::General(format!("Failed to parse ICMP code: {} from  {}", code, s))
             })?;
@@ -171,7 +176,7 @@ mod tests {
     }
 
     #[test]
-    fn test_parse_full_icmp() {
+    fn test_parse_full_icmp_1() {
         let icmp = "ICMP-Name (protocol 1, type 3, code 4)"
             .parse::<Icmp>()
             .unwrap();
@@ -180,6 +185,54 @@ mod tests {
         assert_eq!(icmp.protocol, 1);
         assert_eq!(icmp.icmp_type, Some(3));
         assert_eq!(icmp.code, Some(4));
+    }
+
+    #[test]
+    fn test_parse_full_icmp_2() {
+        let icmp = "ICMP-Name (protocol 1, type 3, code any)"
+            .parse::<Icmp>()
+            .unwrap();
+
+        assert_eq!(icmp.name, "ICMP-Name");
+        assert_eq!(icmp.protocol, 1);
+        assert_eq!(icmp.icmp_type, Some(3));
+        assert!(icmp.code.is_none());
+    }
+
+    #[test]
+    fn test_parse_full_icmp_3() {
+        let icmp = "ICMP-Name (protocol 1, type 3, code Any)"
+            .parse::<Icmp>()
+            .unwrap();
+
+        assert_eq!(icmp.name, "ICMP-Name");
+        assert_eq!(icmp.protocol, 1);
+        assert_eq!(icmp.icmp_type, Some(3));
+        assert!(icmp.code.is_none());
+    }
+
+    #[test]
+    fn test_parse_full_icmp_4() {
+        let icmp = "ICMP-Name (protocol 1, type 3, code ANY)"
+            .parse::<Icmp>()
+            .unwrap();
+
+        assert_eq!(icmp.name, "ICMP-Name");
+        assert_eq!(icmp.protocol, 1);
+        assert_eq!(icmp.icmp_type, Some(3));
+        assert!(icmp.code.is_none());
+    }
+
+    #[test]
+    fn test_parse_full_icmp_5() {
+        let icmp = "ICMP-Name (protocol 1, type 3, code aNY)"
+            .parse::<Icmp>()
+            .unwrap();
+
+        assert_eq!(icmp.name, "ICMP-Name");
+        assert_eq!(icmp.protocol, 1);
+        assert_eq!(icmp.icmp_type, Some(3));
+        assert!(icmp.code.is_none());
     }
 
     #[test]
