@@ -200,7 +200,7 @@ mod tests {
     }
 
     #[test]
-    fn test_parse_full_icmp_3() {
+    fn test_parse_full_icmp_code_any_1() {
         let icmp = "ICMP-Name (protocol 1, type 3, code Any)"
             .parse::<Icmp>()
             .unwrap();
@@ -212,7 +212,7 @@ mod tests {
     }
 
     #[test]
-    fn test_parse_full_icmp_4() {
+    fn test_parse_full_icmp_code_any_2() {
         let icmp = "ICMP-Name (protocol 1, type 3, code ANY)"
             .parse::<Icmp>()
             .unwrap();
@@ -224,7 +224,7 @@ mod tests {
     }
 
     #[test]
-    fn test_parse_full_icmp_5() {
+    fn test_parse_full_icmp_code_any_3() {
         let icmp = "ICMP-Name (protocol 1, type 3, code aNY)"
             .parse::<Icmp>()
             .unwrap();
