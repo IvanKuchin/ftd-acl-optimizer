@@ -73,6 +73,11 @@ impl PrefixListItem {
         }
     }
 }
+
+fn is_ip_range(line: &str) -> bool {
+    line.contains("-")
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
