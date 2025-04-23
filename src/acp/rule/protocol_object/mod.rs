@@ -51,9 +51,9 @@ impl TryFrom<&Vec<String>> for ProtocolObject {
         let mut items = vec![];
         let mut idx = 0;
         while idx < merged_lines.len() {
-            let (objs, obj_lines_count) = get_object(&merged_lines[idx..])?;
+            let (objects, obj_lines_count) = get_object(&merged_lines[idx..])?;
 
-            items.extend(objs);
+            items.extend(objects);
             idx += obj_lines_count;
         }
 
