@@ -76,6 +76,26 @@ impl FromStr for ProtocolList {
 }
 
 impl ProtocolList {
+    /// Parses a string into a ProtocolList, expanding "protocol any" to both TCP and UDP.
+    pub fn from_str_expanded(s: &str) -> Result<Vec<Self>, PortListError> {
+        const PROTOCOL_ANY_PORT: &str = "protocol any, port ";
+
+        let expanded_protocols = if s.contains(PROTOCOL_ANY_PORT) {
+            vec![
+                s.replace(PROTOCOL_ANY_PORT, "protocol 6, port "),
+                s.replace(PROTOCOL_ANY_PORT, "protocol 17, port "),
+            ]
+        } else {
+            vec![s.to_string()]
+        };
+        let protocol_list = expanded_protocols
+            .into_iter()
+            .map(|s| ProtocolList::from_str(&s))
+            .collect::<Result<Vec<_>, _>>()?;
+
+        Ok(protocol_list)
+    }
+
     pub fn is_l4(&self) -> bool {
         match self {
             ProtocolList::TcpUdp(tcp_udp) => tcp_udp.is_l4(),
@@ -150,5 +170,71 @@ mod tests {
     #[test]
     fn test_malformed_input() {
         assert!(ProtocolList::from_str("malformed input").is_err());
+    }
+
+    #[test]
+    fn from_str_expanded_1() {
+        let port_list = ProtocolList::from_str_expanded("IGMP (protocol 2, port 123)").unwrap();
+        assert_eq!(port_list[0].get_name(), "IGMP");
+        assert_eq!(port_list[0].get_protocol(), 2);
+        assert_eq!(port_list[0].get_ports(), (0, 0));
+    }
+
+    #[test]
+    fn from_str_expanded_2() {
+        let port_list = ProtocolList::from_str_expanded("HTTPS (protocol 6, port 443)").unwrap();
+        assert_eq!(port_list[0].get_name(), "HTTPS");
+        assert_eq!(port_list[0].get_protocol(), 6);
+        assert_eq!(port_list[0].get_ports(), (443, 443));
+    }
+
+    #[test]
+    fn from_str_expanded_3() {
+        let port_list =
+            ProtocolList::from_str_expanded("ALL_TCP (protocol 6, port 1-65535)").unwrap();
+        assert_eq!(port_list[0].get_name(), "ALL_TCP");
+        assert_eq!(port_list[0].get_protocol(), 6);
+        assert_eq!(port_list[0].get_ports(), (1, 65535));
+    }
+
+    #[test]
+    fn from_str_expanded_4() {
+        let port_list =
+            ProtocolList::from_str_expanded("ALL (protocol any, port 1-65535)").unwrap();
+        assert_eq!(port_list[0].get_name(), "ALL");
+        assert_eq!(port_list[0].get_protocol(), 6);
+        assert_eq!(port_list[0].get_ports(), (1, 65535));
+        assert_eq!(port_list[1].get_name(), "ALL");
+        assert_eq!(port_list[1].get_protocol(), 17);
+        assert_eq!(port_list[1].get_ports(), (1, 65535));
+    }
+
+    #[test]
+    fn from_str_expanded_5() {
+        let port_list =
+            ProtocolList::from_str_expanded("ALL (protocol any, port 0-65535)").unwrap();
+        assert_eq!(port_list[0].get_name(), "ALL");
+        assert_eq!(port_list[0].get_protocol(), 6);
+        assert_eq!(port_list[0].get_ports(), (0, 65535));
+        assert_eq!(port_list[1].get_name(), "ALL");
+        assert_eq!(port_list[1].get_protocol(), 17);
+        assert_eq!(port_list[1].get_ports(), (0, 65535));
+    }
+
+    #[test]
+    fn from_str_expanded_6() {
+        let port_list = ProtocolList::from_str_expanded("ALL (protocol any, port 8080)").unwrap();
+        assert_eq!(port_list[0].get_name(), "ALL");
+        assert_eq!(port_list[0].get_protocol(), 6);
+        assert_eq!(port_list[0].get_ports(), (8080, 8080));
+        assert_eq!(port_list[1].get_name(), "ALL");
+        assert_eq!(port_list[1].get_protocol(), 17);
+        assert_eq!(port_list[1].get_ports(), (8080, 8080));
+    }
+
+    #[test]
+    fn from_str_expanded_empty_1() {
+        let port_list = ProtocolList::from_str_expanded("");
+        assert!(port_list.is_err());
     }
 }

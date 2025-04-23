@@ -1,5 +1,3 @@
-use std::str::FromStr;
-
 pub mod protocol_list;
 use protocol_list::ProtocolList;
 
@@ -39,7 +37,8 @@ impl TryFrom<&Vec<String>> for Group {
             for line in &lines[1..] {
                 let port = line.trim();
                 if !port.is_empty() {
-                    port_lists.push(ProtocolList::from_str(port)?);
+                    let objects = ProtocolList::from_str_expanded(port)?;
+                    port_lists.extend(objects);
                 }
             }
 
@@ -58,7 +57,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_valid_group() {
+    fn valid_group_1() {
         let lines = vec![
             "HTTP-HTTPS_1 (group)".to_string(),
             "  HTTP (protocol 6, port 80)".to_string(),
@@ -67,6 +66,19 @@ mod tests {
         let group = Group::try_from(&lines).unwrap();
         assert_eq!(group._name, "HTTP-HTTPS_1");
         assert_eq!(group.port_lists.len(), 2);
+    }
+
+    #[test]
+    fn valid_group_2() {
+        let lines = vec![
+            "HTTP-HTTPS-DNS (group)".to_string(),
+            "  HTTP (protocol 6, port 80)".to_string(),
+            "  HTTPS (protocol 6, port 443)".to_string(),
+            "  DNS (protocol any, port 53)".to_string(),
+        ];
+        let group = Group::try_from(&lines).unwrap();
+        assert_eq!(group._name, "HTTP-HTTPS-DNS");
+        assert_eq!(group.port_lists.len(), 4);
     }
 
     #[test]
