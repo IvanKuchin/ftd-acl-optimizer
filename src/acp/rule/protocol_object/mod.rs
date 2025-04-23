@@ -1,5 +1,3 @@
-use std::str::FromStr;
-
 mod group;
 use group::protocol_list::{self, ProtocolList};
 use group::Group;
@@ -53,8 +51,9 @@ impl TryFrom<&Vec<String>> for ProtocolObject {
         let mut items = vec![];
         let mut idx = 0;
         while idx < merged_lines.len() {
-            let (obj, obj_lines_count) = get_object(&merged_lines[idx..])?;
-            items.push(obj);
+            let (objs, obj_lines_count) = get_object(&merged_lines[idx..])?;
+
+            items.extend(objs);
             idx += obj_lines_count;
         }
 
@@ -99,7 +98,7 @@ impl ProtocolObject {
 }
 
 /// Get the next object from input lines (either Group or PortList) and the number of lines to consume.
-fn get_object(lines: &[String]) -> Result<(ProtocolObjectItem, usize), PortObjectError> {
+fn get_object(lines: &[String]) -> Result<(Vec<ProtocolObjectItem>, usize), PortObjectError> {
     if lines.is_empty() {
         return Err(PortObjectError::General(
             "Input lines are empty".to_string(),
@@ -110,10 +109,14 @@ fn get_object(lines: &[String]) -> Result<(ProtocolObjectItem, usize), PortObjec
     if first_line.contains("(group)") {
         let lines_in_group = utilities::calculate_lines_in_group(lines)?;
         let group = Group::try_from(&lines[0..lines_in_group].to_vec())?;
-        Ok((ProtocolObjectItem::Group(group), lines_in_group))
+        Ok((vec![ProtocolObjectItem::Group(group)], lines_in_group))
     } else {
-        let port_list = ProtocolList::from_str(first_line)?;
-        Ok((ProtocolObjectItem::ProtocolList(port_list), 1))
+        let port_list = ProtocolList::from_str_expanded(first_line)?;
+        let port_list = port_list
+            .into_iter()
+            .map(ProtocolObjectItem::ProtocolList)
+            .collect::<Vec<_>>();
+        Ok((port_list, 1))
     }
 }
 
@@ -1076,5 +1079,44 @@ mod tests {
 
         let optimized = optimize_l4_items(port_lists);
         assert_eq!(optimized.len(), 2);
+    }
+
+    #[test]
+    fn optimized_capacity_1() {
+        let lines = vec!["Destination Ports     : TCP-8080 (protocol any, port 8080)".to_string()];
+        let port_object = ProtocolObject::try_from(&lines).unwrap();
+        assert_eq!(port_object.capacity(), 2);
+    }
+
+    #[test]
+    fn optimized_capacity_2() {
+        let lines = vec![
+            "Destination Ports     : TCP-8080 (protocol any, port 8080)".to_string(),
+            " ALL (protocol any, port 1-65535)".to_string(),
+        ];
+        let port_object = ProtocolObject::try_from(&lines).unwrap();
+        assert_eq!(port_object.capacity(), 2);
+    }
+
+    #[test]
+    fn optimized_capacity_3() {
+        let lines = vec![
+            "Destination Ports     : TCP-8080 (protocol any, port 8080)".to_string(),
+            " DNS (protocol any, port 53-53)".to_string(),
+        ];
+        let port_object = ProtocolObject::try_from(&lines).unwrap();
+        dbg!(&port_object);
+        assert_eq!(port_object.capacity(), 4);
+    }
+
+    #[test]
+    fn optimized_capacity_4() {
+        let lines = vec![
+            "Destination Ports     : TCP-8080 (protocol any, port 8080)".to_string(),
+            " DNS (protocol any, port 53)".to_string(),
+        ];
+        let port_object = ProtocolObject::try_from(&lines).unwrap();
+        dbg!(&port_object);
+        assert_eq!(port_object.capacity(), 4);
     }
 }

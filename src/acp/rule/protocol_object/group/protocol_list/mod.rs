@@ -76,6 +76,7 @@ impl FromStr for ProtocolList {
 }
 
 impl ProtocolList {
+    /// Parses a string into a ProtocolList, expanding "protocol any" to both TCP and UDP.
     pub fn from_str_expanded(s: &str) -> Result<Vec<Self>, PortListError> {
         let expanded_protocols = if s.contains("protocol any, port ") {
             vec![
@@ -208,6 +209,29 @@ mod tests {
 
     #[test]
     fn from_str_expanded_5() {
+        let port_list =
+            ProtocolList::from_str_expanded("ALL (protocol any, port 0-65535)").unwrap();
+        assert_eq!(port_list[0].get_name(), "ALL");
+        assert_eq!(port_list[0].get_protocol(), 6);
+        assert_eq!(port_list[0].get_ports(), (0, 65535));
+        assert_eq!(port_list[1].get_name(), "ALL");
+        assert_eq!(port_list[1].get_protocol(), 17);
+        assert_eq!(port_list[1].get_ports(), (0, 65535));
+    }
+
+    #[test]
+    fn from_str_expanded_6() {
+        let port_list = ProtocolList::from_str_expanded("ALL (protocol any, port 8080)").unwrap();
+        assert_eq!(port_list[0].get_name(), "ALL");
+        assert_eq!(port_list[0].get_protocol(), 6);
+        assert_eq!(port_list[0].get_ports(), (8080, 8080));
+        assert_eq!(port_list[1].get_name(), "ALL");
+        assert_eq!(port_list[1].get_protocol(), 17);
+        assert_eq!(port_list[1].get_ports(), (8080, 8080));
+    }
+
+    #[test]
+    fn from_str_expanded_empty_1() {
         let port_list = ProtocolList::from_str_expanded("");
         assert!(port_list.is_err());
     }
