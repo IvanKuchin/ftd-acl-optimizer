@@ -75,7 +75,35 @@ impl PrefixListItem {
 }
 
 fn is_ip_range(line: &str) -> bool {
-    line.contains("-")
+    line.chars()
+        .all(|c| c.is_ascii_digit() || c == '.' || c == '-')
+        && line.matches('-').count() == 1
+        && line.matches('.').count() == 6
+}
+
+fn is_ip_prefix(line: &str) -> bool {
+    let condition1 = line
+        .chars()
+        .all(|c| c.is_ascii_digit() || c == '.' || c == '/')
+        && line.matches('.').count() == 3;
+
+    if line.contains('/') {
+        // number of characters after the '/' must be 1-2
+        let condition2 = line
+            .split('/')
+            .nth(1)
+            .map(|s| s.len() <= 2 && s.parse::<u8>().is_ok())
+            .unwrap_or(false);
+
+        return condition1 && condition2;
+    }
+
+    condition1
+}
+
+fn is_host(line: &str) -> bool {
+    line.chars()
+        .all(|c| c.is_ascii_alphanumeric() || c == '.' || c == '-')
 }
 
 #[cfg(test)]
@@ -125,5 +153,50 @@ mod tests {
         let input = "10.11.12.13-10.11.12.18";
         let prefix_list_item = PrefixListItem::from_str(input).unwrap();
         assert_eq!(prefix_list_item.capacity(), 4); // 10.11.12.13 to 10.11.12.18 inclusive
+    }
+
+    #[test]
+    fn test_is_ip_range() {
+        assert!(is_ip_range("10.11.12.13-10.11.12.14"));
+        assert!(!is_ip_range("10.11.12.13 - 10.11.12.14"));
+        assert!(!is_ip_range("10.11.12.13-10.11.12"));
+        assert!(!is_ip_range("10.11.12.13"));
+        assert!(!is_ip_range("10.11.12.13 "));
+        assert!(!is_ip_range("10.11.12.13/24"));
+        assert!(!is_ip_range("a10.11.12.13-10.11.12.14"));
+    }
+
+    #[test]
+    fn test_is_ip_prefix() {
+        assert!(is_ip_prefix("10.11.12.13"));
+        assert!(is_ip_prefix("10.11.12.13/1"));
+        assert!(is_ip_prefix("10.11.12.13/32"));
+        assert!(!is_ip_prefix("10.11.12.13 - 10.11.12.14"));
+        assert!(!is_ip_prefix("10.11.12.13-10.11.12"));
+        assert!(!is_ip_prefix("10.11.12.13/"));
+        assert!(!is_ip_prefix("10.11.12.13 "));
+        assert!(!is_ip_prefix(" 10.11.12.13 "));
+        assert!(!is_ip_prefix("10.11.12.13/234"));
+        assert!(!is_ip_prefix("a10.11.12.13-10.11.12.14"));
+    }
+
+    #[test]
+    fn test_is_host() {
+        assert!(is_host("hostname"));
+        assert!(is_host("10.11.12.13"));
+        assert!(is_host("host-name"));
+        assert!(is_host("host.name"));
+        assert!(is_host("host123.name.com"));
+        assert!(!is_host("host@name"));
+        assert!(!is_host("host name"));
+        assert!(!is_host("host_name"));
+        assert!(!is_host("host:name"));
+        assert!(!is_host("host name.com"));
+        assert!(!is_host("host name.com "));
+        assert!(!is_host(" host name.com"));
+        assert!(!is_host("host name.com@"));
+        assert!(!is_host("host name.com#"));
+        assert!(!is_host("host name.com$"));
+        assert!(!is_host("host name.com%"));
     }
 }
