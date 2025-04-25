@@ -30,7 +30,7 @@ pub fn read_and_merge_lines(fname: &PathBuf) -> Result<Vec<String>, std::io::Err
         if let Some(last) = result.last_mut() {
             if line
                 .chars()
-                .all(|c| c.is_numeric() || c == '.' || c == '/' || c == ')')
+                .all(|c| c.is_ascii_alphanumeric() || c == '.' || c == '/' || c == ')')
             {
                 // Merge with the previous line
                 last.push_str(line);
