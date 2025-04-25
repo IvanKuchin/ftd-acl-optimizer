@@ -74,14 +74,18 @@ impl PrefixListItem {
     }
 }
 
-fn is_ip_range(line: &str) -> bool {
+fn is_ip_range(line: impl AsRef<str>) -> bool {
+    let line = line.as_ref();
+
     line.chars()
         .all(|c| c.is_ascii_digit() || c == '.' || c == '-')
         && line.matches('-').count() == 1
         && line.matches('.').count() == 6
 }
 
-fn is_ip_prefix(line: &str) -> bool {
+fn is_ip_prefix(line: impl AsRef<str>) -> bool {
+    let line = line.as_ref();
+
     let condition1 = line
         .chars()
         .all(|c| c.is_ascii_digit() || c == '.' || c == '/')
@@ -101,7 +105,9 @@ fn is_ip_prefix(line: &str) -> bool {
     condition1
 }
 
-fn is_host(line: &str) -> bool {
+fn is_host(line: impl AsRef<str>) -> bool {
+    let line = line.as_ref();
+
     line.chars()
         .all(|c| c.is_ascii_alphanumeric() || c == '.' || c == '-')
 }
