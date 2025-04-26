@@ -1,4 +1,4 @@
-use std::str::FromStr;
+use std::{fmt::format, str::FromStr};
 
 mod prefix;
 use prefix::Prefix;
@@ -24,6 +24,9 @@ pub enum PrefixListItemError {
 
     #[error("Failed to parse prefix list item: {0}")]
     PrefixError(#[from] prefix::PrefixError),
+
+    #[error("Unknown type of prefix list item: {0}")]
+    UnknownType(String),
 }
 
 impl FromStr for PrefixListItem {
@@ -34,12 +37,16 @@ impl FromStr for PrefixListItem {
     // or
     // 10.11.12.13-10.11.12.18
     fn from_str(line: &str) -> Result<Self, Self::Err> {
-        if line.contains("-") {
+        if is_ip_range(line) {
             let ip_range = line.parse::<IPRange>()?;
             Ok(PrefixListItem::IPRange(ip_range))
-        } else {
+        } else if is_ip_prefix(line) {
             let prefix = line.parse::<Prefix>()?;
             Ok(PrefixListItem::Prefix(prefix))
+        } else if is_host(line) {
+            todo!("Host name parsing not implemented yet")
+        } else {
+            Err(PrefixListItemError::UnknownType(line.to_string()))
         }
     }
 }
