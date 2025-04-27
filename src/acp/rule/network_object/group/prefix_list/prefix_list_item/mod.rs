@@ -9,21 +9,28 @@ use ip_range::IPRange;
 pub mod ipv4;
 use ipv4::IPv4;
 
+pub mod hostname;
+use hostname::Hostname;
+
 #[derive(Debug, Clone)]
 pub enum PrefixListItem {
     Prefix(Prefix),
     IPRange(IPRange),
+    Hostname(Hostname),
 }
 
 #[derive(thiserror::Error, Debug)]
 pub enum PrefixListItemError {
     // #[error("Failed to parse prefix list item: {0}")]
     // General(String),
-    #[error("Failed to parse prefix list item: {0}")]
+    #[error("Transit error in prefix list item from IPRange: {0}")]
     IPRangeError(#[from] ip_range::IPRangeError),
 
-    #[error("Failed to parse prefix list item: {0}")]
+    #[error("Transit error in prefix list item from Prefix: {0}")]
     PrefixError(#[from] prefix::PrefixError),
+
+    #[error("Transit error in prefix list item from Hostname: {0}")]
+    HostnameError(#[from] hostname::HostnameError),
 
     #[error("Unknown type of prefix list item: {0}")]
     UnknownType(String),
@@ -56,6 +63,7 @@ impl PrefixListItem {
         match self {
             PrefixListItem::Prefix(prefix) => prefix.capacity(),
             PrefixListItem::IPRange(ip_range) => ip_range.capacity(),
+            PrefixListItem::Hostname(hostname) => hostname.capacity(),
         }
     }
 
@@ -63,6 +71,7 @@ impl PrefixListItem {
         match self {
             PrefixListItem::Prefix(prefix) => prefix.get_name(),
             PrefixListItem::IPRange(ip_range) => ip_range.get_name(),
+            PrefixListItem::Hostname(hostname) => hostname.get_name(),
         }
     }
 
@@ -70,6 +79,7 @@ impl PrefixListItem {
         match self {
             PrefixListItem::Prefix(prefix) => prefix.start_ip(),
             PrefixListItem::IPRange(ip_range) => ip_range.start_ip(),
+            PrefixListItem::Hostname(hostname) => hostname.start_ip(),
         }
     }
 
@@ -77,6 +87,7 @@ impl PrefixListItem {
         match self {
             PrefixListItem::Prefix(prefix) => prefix.end_ip(),
             PrefixListItem::IPRange(ip_range) => ip_range.end_ip(),
+            PrefixListItem::Hostname(hostname) => hostname.end_ip(),
         }
     }
 }
