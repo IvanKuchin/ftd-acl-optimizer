@@ -211,7 +211,7 @@ mod tests {
     }
 
     #[test]
-    fn test_is_host() {
+    fn test_is_hostname() {
         assert!(is_hostname("hostname"));
         assert!(is_hostname("10.11.12.13"));
         assert!(is_hostname("host-name"));
