@@ -130,6 +130,28 @@ mod tests {
     }
 
     #[test]
+    fn test_valid_prefix_list4() {
+        let line =
+            "RFC1918 (10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16, 192.168.168.168-192.168.168.169, ipv4.net)";
+        let prefix_list = PrefixList::from_str(line);
+        assert!(prefix_list.is_ok());
+        let prefix_list = prefix_list.unwrap();
+        assert!(prefix_list.items.len() == 5);
+        assert_eq!(prefix_list._name, "RFC1918");
+    }
+
+    #[test]
+    fn test_valid_prefix_list5() {
+        let line =
+            "RFC1918 (10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16, 192.168.168.168-192.168.168.169, ipv4.net, connme.ru)";
+        let prefix_list = PrefixList::from_str(line);
+        assert!(prefix_list.is_ok());
+        let prefix_list = prefix_list.unwrap();
+        assert!(prefix_list.items.len() == 6);
+        assert_eq!(prefix_list._name, "RFC1918");
+    }
+
+    #[test]
     fn test_invalid_prefix() {
         let line = "Invalid (10.0.0.0/8, invalid_prefix)";
         let result = PrefixList::from_str(line);
@@ -143,7 +165,7 @@ mod tests {
         assert!(result.is_err());
         assert_eq!(
             format!("{}", result.unwrap_err()), 
-            "Fail to parse prefix list: Failed to parse prefix list item: Fail to parse prefix: Invalid prefix format (expected IPv4 or Prefix/len) in RFC1918 10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16."
+            "Fail to parse prefix list: Unknown type of prefix list item: RFC1918 10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16"
         );
     }
 

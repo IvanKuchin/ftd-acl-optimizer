@@ -1,4 +1,4 @@
-use std::{fmt::format, str::FromStr};
+use std::str::FromStr;
 
 mod prefix;
 use prefix::Prefix;
@@ -34,6 +34,9 @@ pub enum PrefixListItemError {
 
     #[error("Unknown type of prefix list item: {0}")]
     UnknownType(String),
+
+    #[error("Empty line")]
+    EmptyLine,
 }
 
 impl FromStr for PrefixListItem {
@@ -51,7 +54,10 @@ impl FromStr for PrefixListItem {
             let prefix = line.parse::<Prefix>()?;
             Ok(PrefixListItem::Prefix(prefix))
         } else if is_host(line) {
-            todo!("Host name parsing not implemented yet")
+            let hostname = line.parse::<Hostname>()?;
+            Ok(PrefixListItem::Hostname(hostname))
+        } else if line.trim().is_empty() {
+            Err(PrefixListItemError::EmptyLine)
         } else {
             Err(PrefixListItemError::UnknownType(line.to_string()))
         }

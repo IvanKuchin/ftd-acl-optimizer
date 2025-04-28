@@ -1,7 +1,7 @@
-use std::net::{IpAddr, Ipv4Addr};
+use std::net::IpAddr;
 use std::str::FromStr;
 
-use super::ipv4::{IPv4, IPv4Error};
+use super::ipv4::IPv4;
 use std::net::ToSocketAddrs;
 
 #[derive(Debug, Clone)]
@@ -15,8 +15,6 @@ pub struct Hostname {
 pub enum HostnameError {
     #[error("Fail to resolve name: {name}")]
     NameResolution { name: String },
-    #[error("Transit error in Hostname from IPv4: {0}")]
-    HostnameError(#[from] IPv4Error),
     #[error("IPv6 not supported: {addr}")]
     IPv6NotSupported { addr: String },
     #[error("Transit error in Hostname from Io: {0}")]
@@ -49,9 +47,9 @@ impl FromStr for Hostname {
             });
         }
 
-        return Err(HostnameError::NameResolution {
+        Err(HostnameError::NameResolution {
             name: s.to_string(),
-        });
+        })
     }
 }
 
@@ -76,10 +74,11 @@ impl Hostname {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::net::Ipv4Addr;
 
     #[test]
     fn test_hostname_from_str_valid_ipv4() {
-        let hostname_str = "example.com";
+        let hostname_str = "ipv4.net";
         let hostname = Hostname::from_str(hostname_str).unwrap();
 
         assert_eq!(hostname.get_name(), hostname_str);

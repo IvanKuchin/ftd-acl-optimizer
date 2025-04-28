@@ -12,22 +12,19 @@ pub enum AppError {
     Rule(#[from] cli::CliError),
 }
 
-fn main() {
+fn main() -> Result<(), AppError> {
     let args = args::AppArgs::parse();
     let file = args.file;
 
-    let err = match args.subcommand {
+    match args.subcommand {
         args::Verb::Get(entity) => match entity {
-            args::Entity::Rule(rule) => parse_rule(&file, rule),
-            args::Entity::TopK(topk) => parse_topk(&file, topk),
-            args::Entity::Acp(acp) => parse_acp(&file, acp),
+            args::Entity::Rule(rule) => parse_rule(&file, rule)?,
+            args::Entity::TopK(topk) => parse_topk(&file, topk)?,
+            args::Entity::Acp(acp) => parse_acp(&file, acp)?,
         },
     };
 
-    if let Err(e) = err {
-        eprintln!("Error: {}", e);
-        std::process::exit(1);
-    }
+    Ok(())
 }
 
 fn parse_rule(file: &PathBuf, action: args::Rule) -> Result<(), AppError> {
