@@ -53,7 +53,7 @@ impl FromStr for PrefixListItem {
         } else if is_ip_prefix(line) {
             let prefix = line.parse::<Prefix>()?;
             Ok(PrefixListItem::Prefix(prefix))
-        } else if is_host(line) {
+        } else if is_hostname(line) {
             let hostname = line.parse::<Hostname>()?;
             Ok(PrefixListItem::Hostname(hostname))
         } else if line.trim().is_empty() {
@@ -129,7 +129,7 @@ fn is_ip_prefix(line: impl AsRef<str>) -> bool {
     condition1
 }
 
-fn is_host(line: impl AsRef<str>) -> bool {
+fn is_hostname(line: impl AsRef<str>) -> bool {
     let line = line.as_ref();
 
     line.chars()
@@ -212,21 +212,21 @@ mod tests {
 
     #[test]
     fn test_is_host() {
-        assert!(is_host("hostname"));
-        assert!(is_host("10.11.12.13"));
-        assert!(is_host("host-name"));
-        assert!(is_host("host.name"));
-        assert!(is_host("host123.name.com"));
-        assert!(!is_host("host@name"));
-        assert!(!is_host("host name"));
-        assert!(!is_host("host_name"));
-        assert!(!is_host("host:name"));
-        assert!(!is_host("host name.com"));
-        assert!(!is_host("host name.com "));
-        assert!(!is_host(" host name.com"));
-        assert!(!is_host("host name.com@"));
-        assert!(!is_host("host name.com#"));
-        assert!(!is_host("host name.com$"));
-        assert!(!is_host("host name.com%"));
+        assert!(is_hostname("hostname"));
+        assert!(is_hostname("10.11.12.13"));
+        assert!(is_hostname("host-name"));
+        assert!(is_hostname("host.name"));
+        assert!(is_hostname("host123.name.com"));
+        assert!(!is_hostname("host@name"));
+        assert!(!is_hostname("host name"));
+        assert!(!is_hostname("host_name"));
+        assert!(!is_hostname("host:name"));
+        assert!(!is_hostname("host name.com"));
+        assert!(!is_hostname("host name.com "));
+        assert!(!is_hostname(" host name.com"));
+        assert!(!is_hostname("host name.com@"));
+        assert!(!is_hostname("host name.com#"));
+        assert!(!is_hostname("host name.com$"));
+        assert!(!is_hostname("host name.com%"));
     }
 }
