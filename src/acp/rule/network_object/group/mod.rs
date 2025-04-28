@@ -145,7 +145,7 @@ mod tests {
 
         let result = Group::try_from(&lines);
         assert!(result.is_err());
-        assert_eq!(result.unwrap_err().to_string(), "Failed to parse network group: Fail to parse prefix list: Failed to parse prefix list item: Failed to parse prefix: Failed to parse IPv4 address: invalid digit found in string");
+        assert_eq!(result.unwrap_err().to_string(), "Failed to parse network group: Fail to parse prefix list: Unknown type of prefix list item: INVALID_PREFIX");
     }
 
     #[test]

@@ -60,6 +60,12 @@ impl From<&IPv4> for u32 {
     }
 }
 
+impl From<u32> for IPv4 {
+    fn from(me: u32) -> Self {
+        IPv4(me as u64)
+    }
+}
+
 use core::cmp::PartialOrd;
 
 impl PartialOrd for IPv4 {

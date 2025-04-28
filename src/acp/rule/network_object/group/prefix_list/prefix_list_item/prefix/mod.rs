@@ -35,7 +35,7 @@ impl FromStr for Prefix {
             2 => {
                 let start = parts[0].parse::<IPv4>()?;
                 let mask_length: u8 = parts[1].parse()?;
-                if !(1..=32).contains(&mask_length) {
+                if !(0..=32).contains(&mask_length) {
                     return Err(PrefixError::General(
                         format!(
                             "Invalid prefix mask length (expected from 1 to 32) in {}.",
@@ -171,12 +171,8 @@ mod tests {
     #[test]
     fn test_invalid_subnet_0() {
         let prefix_str = "192.168.0.0/0";
-        let prefix = prefix_str.parse::<Prefix>();
-        assert!(prefix.is_err());
-        assert_eq!(
-            format!("{}", prefix.unwrap_err()),
-            "Fail to parse prefix: Invalid prefix mask length (expected from 1 to 32) in 192.168.0.0/0."
-        );
+        let prefix = prefix_str.parse::<Prefix>().unwrap();
+        assert_eq!(prefix.end.0, 0xFFFFFFFF);
     }
 
     #[test]
@@ -207,5 +203,12 @@ mod tests {
         let prefix_str = "10.0.0.0/32";
         let prefix = prefix_str.parse::<Prefix>().unwrap();
         assert_eq!(prefix.end.0, 0x0A000000);
+    }
+
+    #[test]
+    fn test_prefix_default() {
+        let prefix_str = "0.0.0.0/0";
+        let prefix = prefix_str.parse::<Prefix>().unwrap();
+        assert_eq!(prefix.end.0, 0xFFFFFFFF);
     }
 }
