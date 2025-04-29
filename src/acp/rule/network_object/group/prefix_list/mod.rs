@@ -211,6 +211,7 @@ mod tests {
     fn test_prefix_list_with_extra_comma() {
         let line = "RFC1918 (10.0.0.0/8,, 172.16.0.0/12, 192.168.0.0/16)";
         let result = PrefixList::from_str(line);
+        dbg!(&result);
         assert!(result.is_err());
     }
 

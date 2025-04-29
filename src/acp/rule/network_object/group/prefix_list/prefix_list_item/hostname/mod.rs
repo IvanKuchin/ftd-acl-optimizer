@@ -25,26 +25,19 @@ impl FromStr for Hostname {
     type Err = HostnameError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let mut addrs_iter = format!("{s}:443").to_socket_addrs()?;
-        let addr = addrs_iter
-            .next()
-            .ok_or_else(|| HostnameError::NameResolution {
-                name: s.to_string(),
-            })?
-            .ip();
+        let addrs_iter = format!("{s}:443").to_socket_addrs()?;
+        for addr in addrs_iter {
+            let ip = addr.ip();
 
-        if let IpAddr::V4(ipv4) = addr {
-            let start = IPv4::from(ipv4.to_bits());
-            let end = start.clone();
-            return Ok(Hostname {
-                name: s.to_string(),
-                start,
-                end,
-            });
-        } else if let IpAddr::V6(ipv6) = addr {
-            return Err(HostnameError::IPv6NotSupported {
-                addr: format!("{ipv6}"),
-            });
+            if let IpAddr::V4(ipv4) = ip {
+                let start = IPv4::from(ipv4.to_bits());
+                let end = start.clone();
+                return Ok(Hostname {
+                    name: s.to_string(),
+                    start,
+                    end,
+                });
+            }
         }
 
         Err(HostnameError::NameResolution {
@@ -87,6 +80,16 @@ mod tests {
     }
 
     #[test]
+    fn test_hostname_from_str_valid_ipv4_2() {
+        let hostname_str = "outlook.office365.com";
+        let hostname = Hostname::from_str(hostname_str).unwrap();
+
+        assert_eq!(hostname.get_name(), hostname_str);
+        assert!(hostname.start_ip().to_string().parse::<Ipv4Addr>().is_ok());
+        assert_eq!(hostname.start_ip(), hostname.end_ip());
+    }
+
+    #[test]
     fn test_hostname_from_str_invalid_name() {
         let invalid_hostname = "invalid_hostname";
         let result = Hostname::from_str(invalid_hostname);
@@ -100,8 +103,9 @@ mod tests {
         let result = Hostname::from_str(ipv6_hostname);
 
         assert!(result.is_err());
-        if let Err(HostnameError::IPv6NotSupported { addr: ip }) = result {
-            assert_eq!(ip, "::1");
+        dbg!(&result);
+        if let Err(HostnameError::NameResolution { name }) = result {
+            assert_eq!(name, "[::1]");
         } else {
             panic!("Expected IPv6NotSupported error");
         }

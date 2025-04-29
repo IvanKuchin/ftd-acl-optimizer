@@ -132,6 +132,10 @@ fn is_ip_prefix(line: impl AsRef<str>) -> bool {
 fn is_hostname(line: impl AsRef<str>) -> bool {
     let line = line.as_ref();
 
+    if line.is_empty() {
+        return false;
+    }
+
     line.chars()
         .all(|c| c.is_ascii_alphanumeric() || c == '.' || c == '-')
 }
@@ -194,6 +198,7 @@ mod tests {
         assert!(!is_ip_range("10.11.12.13 "));
         assert!(!is_ip_range("10.11.12.13/24"));
         assert!(!is_ip_range("a10.11.12.13-10.11.12.14"));
+        assert!(!is_ip_range(""));
     }
 
     #[test]
@@ -208,6 +213,7 @@ mod tests {
         assert!(!is_ip_prefix(" 10.11.12.13 "));
         assert!(!is_ip_prefix("10.11.12.13/234"));
         assert!(!is_ip_prefix("a10.11.12.13-10.11.12.14"));
+        assert!(!is_ip_prefix(""));
     }
 
     #[test]
@@ -228,5 +234,6 @@ mod tests {
         assert!(!is_hostname("host name.com#"));
         assert!(!is_hostname("host name.com$"));
         assert!(!is_hostname("host name.com%"));
+        assert!(!is_hostname(""));
     }
 }
