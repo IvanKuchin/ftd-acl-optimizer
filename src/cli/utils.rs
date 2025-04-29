@@ -12,8 +12,26 @@ pub enum FileError {
     AcpEmpty { file: String },
 }
 
-pub fn is_filtered(line: &str) -> bool {
+fn is_filtered(line: &str) -> bool {
     line.contains("Object missing: ") || line.contains("")
+}
+
+/// Checks if a line contains an open parenthesis without a corresponding close parenthesis.
+/// This function is used to identify lines that start a parenthetical block but do not
+/// complete it, which is useful for merging multiline entries.
+fn is_open_parenthesis(line: &str) -> bool {
+    line.contains('(') && !line.contains(')')
+}
+
+/// Checks if a line contains a closing parenthesis `)` without an opening parenthesis `(`.
+/// # Arguments
+/// * `line` - A string slice representing the line to check.
+///
+/// # Returns
+/// * `true` if the line contains a closing parenthesis `)` but no opening parenthesis `(`.
+/// * `false` otherwise.
+fn is_close_parenthesis(line: &str) -> bool {
+    line.contains(')') && !line.contains('(')
 }
 
 /// Read a file and merge lines that are part of the same entry.
@@ -22,24 +40,34 @@ pub fn is_filtered(line: &str) -> bool {
 ///  198)
 /// Should be merged to:
 ///  OBJ-10.223.149.185-198 (10.223.149.185-10.223.149.198)
-pub fn read_and_merge_lines(fname: &PathBuf) -> Result<Vec<String>, std::io::Error> {
-    let content = std::fs::read_to_string(fname)?;
+fn merge_lines_between_parenthesis<'a>(iter: impl Iterator<Item = &'a str>) -> Vec<String> {
     let mut result: Vec<String> = Vec::new();
 
-    for line in content.lines() {
-        if let Some(last) = result.last_mut() {
-            if line
-                .chars()
-                .all(|c| c.is_ascii_alphanumeric() || c == '.' || c == '/' || c == ')')
-            {
-                // Merge with the previous line
-                last.push_str(line);
+    let mut in_parenthesis = false;
+    for line in iter {
+        if is_open_parenthesis(line) {
+            in_parenthesis = true;
+        }
+        if in_parenthesis {
+            if is_close_parenthesis(line) {
+                in_parenthesis = false;
+            }
+            if let Some(last_line) = result.last_mut() {
+                last_line.push_str(line);
                 continue;
             }
         }
         // Add the line as a new entry
         result.push(line.to_string());
     }
+
+    result
+}
+
+pub fn read_and_merge_lines(fname: &PathBuf) -> Result<Vec<String>, std::io::Error> {
+    let content = std::fs::read_to_string(fname)?;
+
+    let result = merge_lines_between_parenthesis(content.lines());
 
     Ok(result)
 }
@@ -109,4 +137,67 @@ fn get_optimized_elements_name(network_object: &NetworkObjectOptimized) -> Vec<S
         .collect::<Vec<_>>();
 
     result
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_merge_lines_basic_merge() {
+        let input = r#"OBJ-10.223.149.185-198 (10.223.149.185-10.223.149.
+198)
+Another line"#;
+        let expected = vec![
+            "OBJ-10.223.149.185-198 (10.223.149.185-10.223.149.198)",
+            "Another line",
+        ];
+
+        let result = merge_lines_between_parenthesis(input.lines());
+        assert_eq!(result, expected);
+    }
+
+    #[test]
+    fn test_merge_lines_no_merge() {
+        let input = vec!["Line 1", "Line 2", "Line 3"];
+        let expected = vec!["Line 1", "Line 2", "Line 3"];
+
+        let result = merge_lines_between_parenthesis(input.into_iter());
+        assert_eq!(result, expected);
+    }
+
+    #[test]
+    fn test_merge_lines_multiple_merges() {
+        let input = vec![
+            "OBJ-10.223.149.185-198 (10.223.149.",
+            "185-10.223.",
+            "149.198)",
+            "Another line",
+        ];
+        let expected = vec![
+            "OBJ-10.223.149.185-198 (10.223.149.185-10.223.149.198)",
+            "Another line",
+        ];
+
+        let result = merge_lines_between_parenthesis(input.into_iter());
+        assert_eq!(result, expected);
+    }
+
+    #[test]
+    fn test_merge_lines_empty_input() {
+        let input: Vec<&str> = vec![];
+        let expected: Vec<String> = vec![];
+
+        let result = merge_lines_between_parenthesis(input.into_iter());
+        assert_eq!(result, expected);
+    }
+
+    #[test]
+    fn test_merge_lines_no_open_parenthesis_special_characters() {
+        let input = vec!["Line with special chars: @#$%", "123.456)", "Another line"];
+        let expected = vec!["Line with special chars: @#$%", "123.456)", "Another line"];
+
+        let result = merge_lines_between_parenthesis(input.into_iter());
+        assert_eq!(result, expected);
+    }
 }
