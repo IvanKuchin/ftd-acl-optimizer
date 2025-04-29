@@ -184,7 +184,7 @@ Another line"#;
     }
 
     #[test]
-    fn test_merge_lines_multipls_merges_2() {
+    fn test_merge_lines_multiple_merges_2() {
         let input = vec![
             "    Source Networks       : RNG-10.220.240.100-124 (10.220.240.100-10.",
             "220.240.124)",
