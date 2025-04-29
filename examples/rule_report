@@ -276,4 +276,36 @@ Object missing: 00000000-0000-0ed3-0000-042950266964
     Rule Hits             : 0
     Variable Set          : Default-Set_17
 
+--------------[ Rule: CustomRule4 ]--------------
+    Action                : Allow
+       Source ISE Metadata    : 
+
+      Dest ISE Metadata     : 
+
+    Source Zones          : inside
+    Destination Zones     : outside
+    Source Networks       : RNG-10.220.240.100-124 (10.220.240.100-10.
+220.240.124)
+                            RNG-10.220.240.209-238 (10.220.240.209-10.220.240.23
+8)
+                            RNG-10.217.240.112-136 (10.217.240.112-10.217.240.13
+6)
+                            RNG-10.217.241.1-153 (10.217.241.1-10.217.241.153)
+    Destination Networks  : OBJ-10.175.228.20-29R (10.175.228.20-10.175.228.29)
+    Destination Ports     : TCP-8443 (protocol 6, port 8443)
+                            SSH (protocol 6, port 22)
+                            HTTPS (protocol 6, port 443)
+                            TCP-8080 (protocol 6, port 8080)
+                            TCP-60000 (protocol 6, port 60000)
+                            TCP-61000 (protocol 6, port 61000)
+                            TCP-62000 (protocol 6, port 62000)
+    Logging Configuration    
+    DC                    : Enabled
+      Beginning           : Disabled
+      End                 : Enabled
+      Files               : Disabled
+    Safe Search           : No
+    Rule Hits             : 0
+    Variable Set          : Default-Set_18
+
 
