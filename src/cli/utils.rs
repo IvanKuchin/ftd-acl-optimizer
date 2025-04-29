@@ -24,6 +24,14 @@ fn is_open_parenthesis(line: &str) -> bool {
     line.contains('(') && !line.contains(')')
 }
 
+/// Checks if a line contains a closing parenthesis `)` without an opening parenthesis `(`.
+/// 
+/// # Arguments
+/// * `line` - A string slice representing the line to check.
+///
+/// # Returns
+/// * `true` if the line contains a closing parenthesis `)` but no opening parenthesis `(`.
+/// * `false` otherwise.
 fn is_close_parenthesis(line: &str) -> bool {
     line.contains(')') && !line.contains('(')
 }
