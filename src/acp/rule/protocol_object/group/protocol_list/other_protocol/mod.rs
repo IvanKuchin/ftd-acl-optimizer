@@ -113,7 +113,7 @@ mod tests {
     }
 
     #[test]
-    fn test_is_mergable() {
+    fn test_is_mergeable() {
         let port_obj = OtherProtocol {
             name: "IGMP".to_string(),
             protocol: 2,
