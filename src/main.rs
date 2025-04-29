@@ -9,7 +9,7 @@ mod cli;
 #[derive(thiserror::Error, Debug)]
 pub enum AppError {
     #[error("Fail to run app due to rule analysis error: {0}")]
-    Rule(#[from] cli::CliError),
+    App(#[from] cli::CliError),
 }
 
 fn main() -> Result<(), AppError> {
