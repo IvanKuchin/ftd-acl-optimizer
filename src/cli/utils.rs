@@ -45,17 +45,17 @@ fn merge_lines_between_parenthesis<'a>(iter: impl Iterator<Item = &'a str>) -> V
 
     let mut in_parenthesis = false;
     for line in iter {
-        if is_open_parenthesis(line) {
-            in_parenthesis = true;
-        }
         if in_parenthesis {
+            if let Some(last_line) = result.last_mut() {
+                last_line.push_str(line);
+            }
             if is_close_parenthesis(line) {
                 in_parenthesis = false;
             }
-            if let Some(last_line) = result.last_mut() {
-                last_line.push_str(line);
-                continue;
-            }
+            continue;
+        }
+        if is_open_parenthesis(line) {
+            in_parenthesis = true;
         }
         // Add the line as a new entry
         result.push(line.to_string());
@@ -167,7 +167,7 @@ Another line"#;
     }
 
     #[test]
-    fn test_merge_lines_multiple_merges() {
+    fn test_merge_lines_multiple_merges_1() {
         let input = vec![
             "OBJ-10.223.149.185-198 (10.223.149.",
             "185-10.223.",
@@ -176,6 +176,30 @@ Another line"#;
         ];
         let expected = vec![
             "OBJ-10.223.149.185-198 (10.223.149.185-10.223.149.198)",
+            "Another line",
+        ];
+
+        let result = merge_lines_between_parenthesis(input.into_iter());
+        assert_eq!(result, expected);
+    }
+
+    #[test]
+    fn test_merge_lines_multiple_merges_2() {
+        let input = vec![
+            "    Source Networks       : range-10.220.240.100-124 (10.220.240.100-10.",
+            "220.240.124)",
+            "range-10.220.240.209-238 (10.220.240.209-10.220.240.23",
+            "8)",
+            "range-10.217.240.112-136 (10.217.240.112-10.217.240.13",
+            "6)",
+            "range-10.217.241.1-153 (10.217.241.1-10.217.241.153)",
+            "Another line",
+        ];
+        let expected = vec![
+            "    Source Networks       : range-10.220.240.100-124 (10.220.240.100-10.220.240.124)",
+            "range-10.220.240.209-238 (10.220.240.209-10.220.240.238)",
+            "range-10.217.240.112-136 (10.217.240.112-10.217.240.136)",
+            "range-10.217.241.1-153 (10.217.241.1-10.217.241.153)",
             "Another line",
         ];
 
