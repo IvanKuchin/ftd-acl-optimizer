@@ -17,6 +17,7 @@ fn is_filtered(line: &str) -> bool {
 }
 
 /// Checks if a line contains an open parenthesis without a corresponding close parenthesis.
+/// 
 /// This function is used to identify lines that start a parenthetical block but do not
 /// complete it, which is useful for merging multiline entries.
 fn is_open_parenthesis(line: &str) -> bool {
@@ -24,6 +25,7 @@ fn is_open_parenthesis(line: &str) -> bool {
 }
 
 /// Checks if a line contains a closing parenthesis `)` without an opening parenthesis `(`.
+/// 
 /// # Arguments
 /// * `line` - A string slice representing the line to check.
 ///
@@ -49,12 +51,12 @@ fn merge_lines_between_parenthesis<'a>(iter: impl Iterator<Item = &'a str>) -> V
             in_parenthesis = true;
         }
         if in_parenthesis {
+            if is_close_parenthesis(line) {
+                in_parenthesis = false;
+            }
             if let Some(last_line) = result.last_mut() {
                 last_line.push_str(line);
                 continue;
-            }
-            if is_close_parenthesis(line) {
-                in_parenthesis = false;
             }
         }
         // Add the line as a new entry
