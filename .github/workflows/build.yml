@@ -27,7 +27,7 @@ jobs:
       run: cargo fmt -- --check
 
     - name: Install dependencies
-      run: cargo build --release
+      run: cargo build
 
   # The create-release job runs purely to initialize the GitHub release itself,
   # and names the release after the `x.y.z` tag that was pushed. It's separate
@@ -98,18 +98,8 @@ jobs:
     #     components: rustfmt, clippy
 
     - name: Build release binary
-      if: matrix.os != 'windows-latest'
       run: |
         cargo build --release
-        echo "BIN=target/release/${{ github.event.repository.name }}" >> $GITHUB_ENV
-      env:
-        CARGO_TERM_COLOR: always
-
-    - name: Build release binary
-      if: matrix.os == 'windows-latest'
-      run: |
-        cargo build --release
-        echo "BIN=target/release/${{ github.event.repository.name }}.exe" >> $GITHUB_ENV
       env:
         CARGO_TERM_COLOR: always
 
@@ -122,6 +112,7 @@ jobs:
       shell: bash
       if: matrix.os == 'windows-latest'
       run: |
+        echo "BIN=target/release/${{ github.event.repository.name }}.exe" >> $GITHUB_ENV
         7z a "$ARCHIVE.zip" "$BIN"
         certutil -hashfile "$ARCHIVE.zip" SHA256 > "$ARCHIVE.zip.sha256"
         echo "ASSET=$ARCHIVE.zip" >> $GITHUB_ENV
@@ -131,6 +122,7 @@ jobs:
       shell: bash
       if: matrix.os != 'windows-latest'
       run: |
+        echo "BIN=target/release/${{ github.event.repository.name }}" >> $GITHUB_ENV
         tar czf "$ARCHIVE.tar.gz" "$BIN"
         shasum -a 256 "$ARCHIVE.tar.gz" > "$ARCHIVE.tar.gz.sha256"
         echo "ASSET=$ARCHIVE.tar.gz" >> $GITHUB_ENV
