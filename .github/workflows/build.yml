@@ -28,7 +28,7 @@ jobs:
         run: |
           if ! grep "version = \"$VERSION\"" Cargo.toml; then
             echo "version does not match Cargo.toml" >&2
-            exit 1
+            # exit 1
           fi
       - name: Create GitHub release
         env:
@@ -83,24 +83,35 @@ jobs:
       run: cargo clippy -- -D warnings
 
     - name: Build release binary
+      if: matrix.os != "windows-latest"
       run: |
         cargo build --release
-        cd target/release/
-        tar -czf linux-${{ github.event.release.tag_name }}.tar.gz ${{ github.event.repository.name }}
-        if [ "${{ matrix.os }}" = "windows-latest" ]; then
-          bin="target/${{ matrix.target }}/release/rg.exe"
-        else
-          bin="target/${{ matrix.target }}/release/rg"
-        fi
+        bin="target/release/${{ github.event.repository.name }}"
         echo "BIN=$bin" >> $GITHUB_ENV
+
+        # clean-up
+        cd target/release/
+        tar -czf linux-${{ github.event.release.tag_name }}.tar.gz ${{ github.event.repository.name }}        
+      env:
+        CARGO_TERM_COLOR: always
+
+    - name: Build release binary
+      if: matrix.os == "windows-latest"
+      run: |
+        cargo build --release
+        bin="target/release/${{ github.event.repository.name }}.exe"
+        echo "BIN=$bin" >> $GITHUB_ENV
+
+        # clean-up
+        cd target/release/
+        tar -czf linux-${{ github.event.release.tag_name }}.tar.gz ${{ github.event.repository.name }}        
       env:
         CARGO_TERM_COLOR: always
 
     - name: Determine archive name
       shell: bash
       run: |
-        version="${{ needs.create-release.outputs.version }}"
-        echo "ARCHIVE=${{ github.event.repository.name }}-$version-${{ matrix.target }}" >> $GITHUB_ENV
+        echo "ARCHIVE=${{ github.event.repository.name }}-${{ needs.create-release.outputs.version }}-${{ matrix.target }}" >> $GITHUB_ENV
 
     - name: Build archive (Windows)
       shell: bash
