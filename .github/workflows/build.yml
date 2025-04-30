@@ -83,7 +83,7 @@ jobs:
       run: cargo clippy -- -D warnings
 
     - name: Build release binary
-      if: matrix.os != "windows-latest"
+      if: matrix.os != 'windows-latest'
       run: |
         cargo build --release
         bin="target/release/${{ github.event.repository.name }}"
@@ -96,7 +96,7 @@ jobs:
         CARGO_TERM_COLOR: always
 
     - name: Build release binary
-      if: matrix.os == "windows-latest"
+      if: matrix.os == 'windows-latest'
       run: |
         cargo build --release
         bin="target/release/${{ github.event.repository.name }}.exe"
