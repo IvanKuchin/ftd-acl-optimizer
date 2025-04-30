@@ -5,19 +5,72 @@ on:
     types: ['published']
 
 jobs:
-  build:
+  # The create-release job runs purely to initialize the GitHub release itself,
+  # and names the release after the `x.y.z` tag that was pushed. It's separate
+  # from building the release so that we only create the release once.
+  create-release:
+    name: create-release
     runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Get the release version from the tag
+        if: env.VERSION == ''
+        run: echo "VERSION=${{ github.ref_name }}" >> $GITHUB_ENV
+      - name: Show the version
+        run: |
+          echo "version is: $VERSION"
+      - name: Check that tag version and Cargo.toml version are the same
+        shell: bash
+        run: |
+          if ! grep -q "version = \"$VERSION\"" Cargo.toml; then
+            echo "version does not match Cargo.toml" >&2
+            exit 1
+          fi
+      - name: Create GitHub release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh release create $VERSION --draft --verify-tag --title $VERSION
+    outputs:
+      version: ${{ env.VERSION }}
+
+  build-release:
+    name: build-release
+    needs: ['create-release']
+    runs-on: ${{ matrix.os }}
     permissions:
       # write permission is required to create a github release
       contents: write
       
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+        - build: linux
+          os: ubuntu-latest
+          rust: nightly
+          target: x86_64-unknown-linux-musl
+          strip: x86_64-linux-musl-strip
+        - build: macos
+          os: macos-latest
+          rust: nightly
+          target: x86_64-apple-darwin
+        - build: win-msvc
+          os: windows-latest
+          rust: nightly
+          target: x86_64-pc-windows-msvc
+        - build: win-gnu
+          os: windows-latest
+          rust: nightly-x86_64-gnu
+          target: x86_64-pc-windows-gnu
+
     steps:
     - uses: actions/checkout@v4
 
     # - name: Set up Rust
-    #   uses: actions-rs/toolchain@v1
+    #   uses: actions-rs/toolchain@latest
     #   with:
     #     toolchain: stable
+    #     components: rustfmt, clippy
 
     - name: Run tests
       run: cargo test
@@ -25,66 +78,49 @@ jobs:
     - name: Run clippy
       run: cargo clippy -- -D warnings
 
-    - name: Linux build
+    - name: Build release binary
       run: |
-        cargo build --release --target x86_64-unknown-linux-gnu
-        cd target/x86_64-unknown-linux-gnu/release/
-        tar -czf linux-${{ github.event.release.tag_name }}.tar.gz myapp
+        cargo build --release
+        cd target/release/
+        tar -czf linux-${{ github.event.release.tag_name }}.tar.gz ${{ github.event.repository.name }}
+        if [ "${{ matrix.os }}" = "windows-latest" ]; then
+          bin="target/${{ matrix.target }}/release/rg.exe"
+        else
+          bin="target/${{ matrix.target }}/release/rg"
+        fi
+        echo "BIN=$bin" >> $GITHUB_ENV
       env:
         CARGO_TERM_COLOR: always
 
-    - name: Windows build
+    - name: Determine archive name
+      shell: bash
       run: |
-        cargo build --release --target x86_64-pc-windows-msvc
-        cd target/x86_64-pc-windows-msvc/release/
-        tar -czf windows-${{ github.event.release.tag_name }}.tar.gz myapp.exe
-      env:
-        CARGO_TERM_COLOR: always
+        version="${{ needs.create-release.outputs.version }}"
+        echo "ARCHIVE=${{ github.event.repository.name }}-$version-${{ matrix.target }}" >> $GITHUB_ENV
 
-    - name: macOS build
+    - name: Build archive (Windows)
+      shell: bash
+      if: matrix.os == 'windows-latest'
       run: |
-        cargo build --release --target x86_64-apple-darwin
-        cd target/x86_64-apple-darwin/release/
-        tar -czf macos-${{ github.event.release.tag_name }}.tar.gz myapp
-      env:
-        CARGO_TERM_COLOR: always
+        7z a "$ARCHIVE.zip" "$BIN"
+        certutil -hashfile "$ARCHIVE.zip" SHA256 > "$ARCHIVE.zip.sha256"
+        echo "ASSET=$ARCHIVE.zip" >> $GITHUB_ENV
+        echo "ASSET_SUM=$ARCHIVE.zip.sha256" >> $GITHUB_ENV
 
-    - name: Create release
-      id: create_release
-      uses: softprops/action-gh-release@v2
+    - name: Build archive (Unix)
+      shell: bash
+      if: matrix.os != 'windows-latest'
+      run: |
+        tar czf "$ARCHIVE.tar.gz" "$BIN"
+        shasum -a 256 "$ARCHIVE.tar.gz" > "$ARCHIVE.tar.gz.sha256"
+        echo "ASSET=$ARCHIVE.tar.gz" >> $GITHUB_ENV
+        echo "ASSET_SUM=$ARCHIVE.tar.gz.sha256" >> $GITHUB_ENV
+
+    - name: Upload release archive
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        files: |
-          target/x86_64-unknown-linux-gnu/release/linux-${{ github.event.release.tag_name }}.tar.gz
-          target/x86_64-pc-windows-msvc/release/windows-${{ github.event.release.tag_name }}.tar.gz
-          target/x86_64-apple-darwin/release/macos-${{ github.event.release.tag_name }}.tar.gz
-
-    - name: Get the URL of the created release
-      run: echo "The release is at ${{ steps.create_release.outputs.upload_url }}"
-
-    - name: Upload linux artifact
-      uses: actions/upload-artifact@v4
-      with:
-        name: linux-artifact
-        path: target/x86_64-unknown-linux-gnu/release/linux-${{ github.event.release.tag_name }}.tar.gz
-
-    - name: Upload windows artifact
-      uses: actions/upload-artifact@v4
-      with:
-        name: windows-artifact
-        path: target/x86_64-pc-windows-msvc/release/windows-${{ github.event.release.tag_name }}.tar.gz
-
-    - name: Upload macOS artifact
-      uses: actions/upload-artifact@v4
-      with:
-        name: macos-artifact
-        path: target/x86_64-apple-darwin/release/macos-${{ github.event.release.tag_name }}.tar.gz
-
-    - name: Cleanup
+      shell: bash
       run: |
-        rm target/x86_64-unknown-linux-gnu/release/linux-${{ github.event.release.tag_name }}.tar.gz
-        rm target/x86_64-pc-windows-msvc/release/windows-${{ github.event.release.tag_name }}.tar.gz
-        rm target/x86_64-apple-darwin/release/macos-${{ github.event.release.tag_name }}.tar.gz
-        echo "Cleanup completed successfully."
+        version="${{ needs.create-release.outputs.version }}"
+        gh release upload "$version" ${{ env.ASSET }} ${{ env.ASSET_SUM }}
 
