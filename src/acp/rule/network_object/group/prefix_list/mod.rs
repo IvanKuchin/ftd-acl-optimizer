@@ -15,6 +15,8 @@ pub enum PrefixListError {
     General(String),
     #[error("Fail to parse prefix list {0}")]
     GeneralNoColon(String),
+    #[error("Invalid prefix list format {0}")]
+    InvalidPrefixListFormat(String),
     #[error("Fail to parse prefix list: {0}")]
     PrefixListItemError(#[from] prefix_list_item::PrefixListItemError),
 }
@@ -73,10 +75,7 @@ impl FromStr for PrefixList {
 
             Ok(Self { _name: name, items })
         } else {
-            return Err(PrefixListError::General(format!(
-                "Invalid prefix list format {}",
-                line
-            )));
+            return Err(PrefixListError::InvalidPrefixListFormat(line.to_string()));
         }
     }
 }
@@ -176,7 +175,7 @@ mod tests {
         assert!(result.is_err());
         assert_eq!(
             format!("{}", result.unwrap_err()),
-            "Fail to parse prefix list: Invalid prefix list format RFC1918 ("
+            "Invalid prefix list format RFC1918 ("
         );
     }
 
@@ -221,7 +220,7 @@ mod tests {
         assert!(result.is_err());
         assert_eq!(
             format!("{}", result.unwrap_err()),
-            "Fail to parse prefix list: Invalid prefix list format RFC1918 (10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16"
+            "Invalid prefix list format RFC1918 (10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16"
         );
     }
 
