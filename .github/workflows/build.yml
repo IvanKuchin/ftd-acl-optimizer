@@ -4,6 +4,10 @@ on:
   release:
     types: ['published']
 
+# We need this to be able to create releases.
+permissions:
+  contents: write
+
 jobs:
   # The create-release job runs purely to initialize the GitHub release itself,
   # and names the release after the `x.y.z` tag that was pushed. It's separate
