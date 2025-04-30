@@ -9,11 +9,32 @@ permissions:
   contents: write
 
 jobs:
+  test-release:
+    name:  Test, lint and attempt to build
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: checkout code
+      uses: actions/checkout@v4
+
+    - name: Run clippy
+      run: cargo clippy --verbose -- -D warnings
+
+    - name: Run tests
+      run: cargo test --verbose
+
+    - name: Run fmt
+      run: cargo fmt -- --check
+
+    - name: Install dependencies
+      run: cargo build --release
+
   # The create-release job runs purely to initialize the GitHub release itself,
   # and names the release after the `x.y.z` tag that was pushed. It's separate
   # from building the release so that we only create the release once.
   create-release:
     name: create-release
+    needs: ['test-release']
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -75,12 +96,6 @@ jobs:
     #   with:
     #     toolchain: stable
     #     components: rustfmt, clippy
-
-    - name: Run tests
-      run: cargo test
-
-    - name: Run clippy
-      run: cargo clippy -- -D warnings
 
     - name: Build release binary
       if: matrix.os != 'windows-latest'
