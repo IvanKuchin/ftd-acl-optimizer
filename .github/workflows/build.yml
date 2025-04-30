@@ -101,12 +101,7 @@ jobs:
       if: matrix.os != 'windows-latest'
       run: |
         cargo build --release
-        bin="target/release/${{ github.event.repository.name }}"
-        echo "BIN=$bin" >> $GITHUB_ENV
-
-        # clean-up
-        cd target/release/
-        tar -czf linux-${{ github.event.release.tag_name }}.tar.gz ${{ github.event.repository.name }}        
+        echo "BIN=target/release/${{ github.event.repository.name }}" >> $GITHUB_ENV
       env:
         CARGO_TERM_COLOR: always
 
@@ -114,12 +109,7 @@ jobs:
       if: matrix.os == 'windows-latest'
       run: |
         cargo build --release
-        bin="target/release/${{ github.event.repository.name }}.exe"
-        echo "BIN=$bin" >> $GITHUB_ENV
-
-        # clean-up
-        cd target/release/
-        tar -czf linux-${{ github.event.release.tag_name }}.tar.gz ${{ github.event.repository.name }}        
+        echo "BIN=target/release/${{ github.event.repository.name }}.exe" >> $GITHUB_ENV
       env:
         CARGO_TERM_COLOR: always
 
