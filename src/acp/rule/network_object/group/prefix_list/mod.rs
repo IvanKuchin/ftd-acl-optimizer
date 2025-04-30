@@ -16,7 +16,7 @@ pub enum PrefixListError {
     #[error("Fail to parse prefix list {0}")]
     GeneralNoColon(String),
     /// This error is returned when the input string contains mismatched parentheses,
-    /// making it an invalid prefix list format. For example, an input like "10.0.0.0/8)" 
+    /// making it an invalid prefix list format. For example, an input like "10.0.0.0/8)"
     /// or "(10.0.0.0/8" would trigger this error.
     #[error("Invalid prefix list format {0}")]
     InvalidPrefixListFormat(String),
