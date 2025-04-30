@@ -78,7 +78,7 @@ impl FromStr for PrefixList {
 
             Ok(Self { _name: name, items })
         } else {
-            return Err(PrefixListError::InvalidPrefixListFormat(line.to_string()));
+            Err(PrefixListError::InvalidPrefixListFormat(line.to_string()))
         }
     }
 }
