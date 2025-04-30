@@ -113,8 +113,8 @@ jobs:
       shell: bash
       if: matrix.os == 'windows-latest'
       run: |
-        echo 7z a "$ARCHIVE.zip" "{{ env.$BIN }}.exe"
-        7z a "$ARCHIVE.zip" "{{ env.$BIN }}.exe"
+        echo 7z a "$ARCHIVE.zip" "$BIN.exe"
+        7z a "$ARCHIVE.zip" "$BIN.exe"
         certutil -hashfile "$ARCHIVE.zip" SHA256 > "$ARCHIVE.zip.sha256"
         echo "ASSET=$ARCHIVE.zip" >> $GITHUB_ENV
         echo "ASSET_SUM=$ARCHIVE.zip.sha256" >> $GITHUB_ENV
