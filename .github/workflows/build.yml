@@ -9,7 +9,7 @@ permissions:
   contents: write
 
 jobs:
-  test-release:
+  release-pre-checks:
     name:  Test, lint and attempt to build
     runs-on: ubuntu-latest
 
@@ -34,7 +34,7 @@ jobs:
   # from building the release so that we only create the release once.
   create-release:
     name: create-release
-    needs: ['test-release']
+    needs: ['release-pre-checks']
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
