@@ -13,15 +13,16 @@ pub struct PrefixList {
 pub enum PrefixListError {
     #[error("Fail to parse prefix list: {0}")]
     General(String),
-    #[error("Fail to parse prefix list {0}")]
-    GeneralNoColon(String),
+    #[error("Fail to parse prefix list {content} with error: {transit_error}")]
+    PrefixListParseError {
+        content: String,
+        transit_error: prefix_list_item::PrefixListItemError,
+    },
     /// This error is returned when the input string contains mismatched parentheses,
     /// making it an invalid prefix list format. For example, an input like "10.0.0.0/8)"
     /// or "(10.0.0.0/8" would trigger this error.
-    #[error("Invalid prefix list format {0}")]
-    InvalidPrefixListFormat(String),
-    #[error("Fail to parse prefix list: {0}")]
-    PrefixListItemError(#[from] prefix_list_item::PrefixListItemError),
+    #[error("Unbalanced parenthesis in {0}")]
+    UnbalancedParenthesis(String),
 }
 
 impl FromStr for PrefixList {
@@ -58,9 +59,12 @@ impl FromStr for PrefixList {
             let items = prefix_str
                 .split(",")
                 .map(|s| {
-                    s.trim()
-                        .parse::<PrefixListItem>()
-                        .map_err(|e| PrefixListError::GeneralNoColon(format!("({}) :{}", line, e)))
+                    s.trim().parse::<PrefixListItem>().map_err(|e| {
+                        PrefixListError::PrefixListParseError {
+                            content: s.trim().to_string(),
+                            transit_error: e,
+                        }
+                    })
                 })
                 .collect::<Result<Vec<_>, _>>()?;
 
@@ -78,7 +82,7 @@ impl FromStr for PrefixList {
 
             Ok(Self { _name: name, items })
         } else {
-            Err(PrefixListError::InvalidPrefixListFormat(line.to_string()))
+            Err(PrefixListError::UnbalancedParenthesis(line.to_string()))
         }
     }
 }
@@ -178,7 +182,7 @@ mod tests {
         assert!(result.is_err());
         assert_eq!(
             format!("{}", result.unwrap_err()),
-            "Invalid prefix list format RFC1918 ("
+            "Unbalanced parenthesis in RFC1918 ("
         );
     }
 
@@ -223,7 +227,7 @@ mod tests {
         assert!(result.is_err());
         assert_eq!(
             format!("{}", result.unwrap_err()),
-            "Invalid prefix list format RFC1918 (10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16"
+            "Unbalanced parenthesis in RFC1918 (10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16"
         );
     }
 
