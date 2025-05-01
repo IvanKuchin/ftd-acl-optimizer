@@ -13,7 +13,7 @@ pub struct PrefixList {
 pub enum PrefixListError {
     #[error("Fail to parse prefix list: {0}")]
     General(String),
-    #[error("Fail to parse prefix list {content} with error: {prefix_list_item_error}")]
+    #[error("Fail to parse prefix list '{content}' with error: {prefix_list_item_error}")]
     PrefixListParseError {
         content: String,
         prefix_list_item_error: prefix_list_item::PrefixListItemError,
