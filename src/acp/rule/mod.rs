@@ -246,10 +246,10 @@ fn get_name(lines: &[String]) -> Result<String, RuleError> {
         .find(|line| line.contains("Rule: "))
         .ok_or(RuleError::RuleNameNotFound(lines.join("\n")))?;
     let name = line
-        .split("-[ Rule: ")
+        .split("[ Rule: ")
         .nth(1)
         .ok_or(RuleError::RuleNameParsingError(line.clone()))?
-        .split(" ]-")
+        .split(" ]")
         .next()
         .ok_or(RuleError::RuleNameParsingError(line.clone()))?;
     Ok(name.to_string())
