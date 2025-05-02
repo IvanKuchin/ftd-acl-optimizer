@@ -376,7 +376,7 @@ mod tests {
             "OBJ-10.11.0.0 (10.11.0.0/16)".to_string(),
         ];
         let name = get_name(&lines).unwrap();
-        assert_eq!(name, EXPECTED_RULE_NAME);
+        assert_eq!(name, "Custom_rule2 | FM-15046".to_string());
     }
 
     #[test]
