@@ -3,8 +3,9 @@ use std::path::PathBuf;
 
 pub mod acp;
 
-mod args;
 mod cli;
+
+use cli::args;
 
 #[derive(thiserror::Error, Debug)]
 pub enum AppError {

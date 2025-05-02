@@ -2,6 +2,7 @@ use std::path::PathBuf;
 
 use crate::acp::Acp;
 
+pub mod args;
 mod utils;
 
 #[derive(thiserror::Error, Debug)]
