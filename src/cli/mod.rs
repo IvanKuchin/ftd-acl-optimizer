@@ -180,16 +180,21 @@ pub fn analyze_topk_by_optimization(fname: &PathBuf, k: usize) -> Result<(), Cli
 
     let mut rules = acp.iter().collect::<Vec<_>>();
 
-    rules.sort_by_key(|a| {
-        100 - ((a.optimized_capacity() as f64 / a.capacity() as f64) * 100.0) as u8
-    });
+    rules.sort_by_key(|a| a.capacity() - a.optimized_capacity());
     rules.reverse();
 
     println!("==== Top{k} rules by capacity ====");
     for rule in rules.iter().take(k) {
+        let rule_capacity = rule.capacity();
+        let rule_capacity_optimized = rule.optimized_capacity();
+
         println!(" --- rule name: {}", rule.get_name());
-        println!("\t capacity: {}", rule.capacity());
-        println!("\t optimized capacity: {}", rule.optimized_capacity());
+        println!("\t capacity: {}", rule_capacity);
+        println!("\t optimized capacity: {}", rule_capacity_optimized);
+        println!(
+            "\t # of removed entries: {}",
+            rule_capacity - rule_capacity_optimized
+        );
 
         println!(
             "\t optimization ratio: {:.2}%",
