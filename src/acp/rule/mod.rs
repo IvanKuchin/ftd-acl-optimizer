@@ -30,6 +30,8 @@ pub enum RuleError {
     PortObjectError(#[from] protocol_object::PortObjectError),
     #[error("Fail to parse rule name: {0}")]
     RuleNameParsingError(String),
+    #[error("Line with rule name not found {0}")]
+    RuleNameNotFound(String),
 }
 
 impl TryFrom<Vec<String>> for Rule {
@@ -242,10 +244,7 @@ fn get_name(lines: &[String]) -> Result<String, RuleError> {
     let line = lines
         .iter()
         .find(|line| line.contains("Rule: "))
-        .ok_or(RuleError::General(format!(
-            "Line with rule name not found ({:?})",
-            lines
-        )))?;
+        .ok_or(RuleError::RuleNameNotFound(lines.join("\n")))?;
     let name = line
         .split("-[ Rule: ")
         .nth(1)
