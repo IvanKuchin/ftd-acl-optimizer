@@ -43,15 +43,10 @@ pub fn analyze_rule(fname: &PathBuf, rule_name: &str) -> Result<(), CliError> {
         name: rule_name.to_string(),
     })?;
 
-    println!("Rule name: {}", rule.get_name());
+    let rule_capacity = rule.capacity();
+    let rule_capacity_optimized = rule.optimized_capacity();
 
-    println!("\t capacity:           {}", rule.capacity());
-    println!("\t optimized capacity: {}", rule.optimized_capacity());
-
-    println!(
-        "\t optimization ratio: {:.2}%",
-        100. - (rule.optimized_capacity() as f64 / rule.capacity() as f64) * 100.0
-    );
+    utils::print_rule_analysis(rule.get_name(), rule_capacity, rule_capacity_optimized);
 
     let (src_networks_opt, dst_networks_opt) = rule.get_optimized_networks();
     utils::print_optimization_report(&src_networks_opt, &dst_networks_opt);
@@ -66,15 +61,7 @@ pub fn analyze_rule_capacity(fname: &PathBuf, rule_name: &str) -> Result<(), Cli
         name: rule_name.to_string(),
     })?;
 
-    println!("Rule name: {}", rule.get_name());
-
-    println!("\t capacity:           {}", rule.capacity());
-    println!("\t optimized capacity: {}", rule.optimized_capacity());
-
-    println!(
-        "\t optimization ratio: {:.2}%",
-        100. - (rule.optimized_capacity() as f64 / rule.capacity() as f64) * 100.0
-    );
+    utils::print_rule_analysis(rule.get_name(), rule.capacity(), rule.optimized_capacity());
 
     Ok(())
 }
@@ -91,14 +78,7 @@ pub fn analyze_acp_capacity(fname: &PathBuf) -> Result<(), CliError> {
         acp_capacity += rule_capacity;
         acp_capacity_optimized += rule_capacity_optimized;
 
-        println!("--- rule name: {}", rule.get_name());
-        println!("\t capacity: {}", rule_capacity);
-        println!("\t optimized capacity: {}", rule_capacity_optimized);
-
-        println!(
-            "\t optimization ratio: {:.2}%",
-            100. - (rule.optimized_capacity() as f64 / rule.capacity() as f64) * 100.0
-        );
+        utils::print_rule_analysis(rule.get_name(), rule_capacity, rule_capacity_optimized);
     }
 
     println!("\n");
@@ -126,14 +106,7 @@ pub fn analyze_acp(fname: &PathBuf) -> Result<(), CliError> {
         acp_capacity += rule_capacity;
         acp_capacity_optimized += rule_capacity_optimized;
 
-        println!(" --- rule name: {}", rule.get_name());
-        println!("\t capacity: {}", rule_capacity);
-        println!("\t optimized capacity: {}", rule_capacity_optimized);
-
-        println!(
-            "\t optimization ratio: {:.2}%",
-            100. - (rule.optimized_capacity() as f64 / rule.capacity() as f64) * 100.0
-        );
+        utils::print_rule_analysis(rule.get_name(), rule_capacity, rule_capacity_optimized);
 
         let (src_networks_opt, dst_networks_opt) = rule.get_optimized_networks();
         utils::print_optimization_report(&src_networks_opt, &dst_networks_opt);
@@ -162,14 +135,10 @@ pub fn analyze_topk_by_capacity(fname: &PathBuf, k: usize) -> Result<(), CliErro
 
     println!("==== Top{k} rules by capacity ====");
     for rule in rules.iter().take(k) {
-        println!(" --- rule name: {}", rule.get_name());
-        println!("\t capacity: {}", rule.capacity());
-        println!("\t optimized capacity: {}", rule.optimized_capacity());
+        let rule_capacity = rule.capacity();
+        let rule_capacity_optimized = rule.optimized_capacity();
 
-        println!(
-            "\t optimization ratio: {:.2}%",
-            100. - (rule.optimized_capacity() as f64 / rule.capacity() as f64) * 100.0
-        );
+        utils::print_rule_analysis(rule.get_name(), rule_capacity, rule_capacity_optimized);
     }
 
     Ok(())
@@ -180,21 +149,15 @@ pub fn analyze_topk_by_optimization(fname: &PathBuf, k: usize) -> Result<(), Cli
 
     let mut rules = acp.iter().collect::<Vec<_>>();
 
-    rules.sort_by_key(|a| {
-        100 - ((a.optimized_capacity() as f64 / a.capacity() as f64) * 100.0) as u8
-    });
+    rules.sort_by_key(|a| a.capacity().saturating_sub(a.optimized_capacity()));
     rules.reverse();
 
     println!("==== Top{k} rules by capacity ====");
     for rule in rules.iter().take(k) {
-        println!(" --- rule name: {}", rule.get_name());
-        println!("\t capacity: {}", rule.capacity());
-        println!("\t optimized capacity: {}", rule.optimized_capacity());
+        let rule_capacity = rule.capacity();
+        let rule_capacity_optimized = rule.optimized_capacity();
 
-        println!(
-            "\t optimization ratio: {:.2}%",
-            100. - (rule.optimized_capacity() as f64 / rule.capacity() as f64) * 100.0
-        );
+        utils::print_rule_analysis(rule.get_name(), rule_capacity, rule_capacity_optimized);
     }
 
     Ok(())

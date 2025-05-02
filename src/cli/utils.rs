@@ -101,7 +101,7 @@ pub fn read_acp_from_file(fname: &PathBuf) -> Result<Vec<String>, FileError> {
     Ok(acp)
 }
 
-pub fn print_optimization_report(
+pub(super) fn print_optimization_report(
     src_networks_opt: &Option<NetworkObjectOptimized>,
     dst_networks_opt: &Option<NetworkObjectOptimized>,
 ) {
@@ -137,6 +137,28 @@ fn get_optimized_elements_name(network_object: &NetworkObjectOptimized) -> Vec<S
         .collect::<Vec<_>>();
 
     result
+}
+
+pub(super) fn print_rule_analysis(
+    rule_name: &str,
+    rule_capacity: u64,
+    rule_capacity_optimized: u64,
+) {
+    println!(" --- rule name: {}", rule_name);
+    println!("\t capacity: {}", rule_capacity);
+    println!("\t optimized capacity: {}", rule_capacity_optimized);
+    println!(
+        "\t # of removed entries: {}",
+        rule_capacity - rule_capacity_optimized
+    );
+
+    let optimization_ratio = if rule_capacity > 0 {
+        (rule_capacity - rule_capacity_optimized) as f64 / rule_capacity as f64 * 100.0
+    } else {
+        0.0
+    };
+
+    println!("\t optimization ratio: {:.2}%", optimization_ratio);
 }
 
 #[cfg(test)]
