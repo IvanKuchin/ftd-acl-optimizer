@@ -28,6 +28,8 @@ pub enum RuleError {
     NetworkObjectError(#[from] network_object::NetworkObjectError),
     #[error("Fail to parse rule: {0}")]
     PortObjectError(#[from] protocol_object::PortObjectError),
+    #[error("Fail to parse rule name: {0}")]
+    RuleNameParsingError(String),
 }
 
 impl TryFrom<Vec<String>> for Rule {
@@ -245,12 +247,12 @@ fn get_name(lines: &[String]) -> Result<String, RuleError> {
             lines
         )))?;
     let name = line
-        .split_whitespace()
-        .nth(2)
-        .ok_or(RuleError::General(format!(
-            "Rule name not found in line: {:?}",
-            line
-        )))?;
+        .split("-[ Rule: ")
+        .nth(1)
+        .ok_or(RuleError::RuleNameParsingError(line.clone()))?
+        .split(" ]-")
+        .next()
+        .ok_or(RuleError::RuleNameParsingError(line.clone()))?;
     Ok(name.to_string())
 }
 
@@ -374,7 +376,7 @@ mod tests {
             "OBJ-10.11.0.0 (10.11.0.0/16)".to_string(),
         ];
         let name = get_name(&lines).unwrap();
-        assert_eq!(name, "Custom_rule2");
+        assert_eq!(name, "Custom_rule2 | FM-15046");
     }
 
     #[test]
@@ -721,7 +723,7 @@ mod tests {
     Logging Configuration";
         let lines: Vec<String> = rule.lines().map(|s| s.to_string()).collect();
         let rule = Rule::try_from(lines).unwrap();
-        assert_eq!(rule.name, "Custom_rule2".to_string());
+        assert_eq!(rule.name, "Custom_rule2 | FM-15046".to_string());
         assert_eq!(rule.src_networks.as_ref().unwrap().capacity(), 4);
         assert_eq!(rule.dst_networks.as_ref().unwrap().capacity(), 8);
         assert!(rule.src_protocols.is_some());
@@ -747,7 +749,7 @@ mod tests {
     Logging Configuration";
         let lines: Vec<String> = rule.lines().map(|s| s.to_string()).collect();
         let rule = Rule::try_from(lines).unwrap();
-        assert_eq!(rule.name, "Custom_rule2".to_string());
+        assert_eq!(rule.name, "Custom_rule2 | FM-15046".to_string());
         assert_eq!(rule.src_networks.as_ref().unwrap().capacity(), 4);
         assert_eq!(rule.dst_networks.as_ref().unwrap().capacity(), 8);
         assert!(rule.src_protocols.is_some());
@@ -773,7 +775,7 @@ mod tests {
     Logging Configuration";
         let lines: Vec<String> = rule.lines().map(|s| s.to_string()).collect();
         let rule = Rule::try_from(lines).unwrap();
-        assert_eq!(rule.name, "Custom_rule2".to_string());
+        assert_eq!(rule.name, "Custom_rule2 | FM-15046".to_string());
         assert_eq!(rule.src_networks.as_ref().unwrap().capacity(), 4);
         assert_eq!(rule.dst_networks.as_ref().unwrap().capacity(), 8);
         assert!(rule.src_protocols.is_none());
@@ -794,7 +796,7 @@ mod tests {
     Logging Configuration";
         let lines: Vec<String> = rule.lines().map(|s| s.to_string()).collect();
         let rule = Rule::try_from(lines).unwrap();
-        assert_eq!(rule.name, "Custom_rule2".to_string());
+        assert_eq!(rule.name, "Custom_rule2 | FM-15046".to_string());
         assert_eq!(rule.src_networks.as_ref().unwrap().capacity(), 4);
         assert!(rule.src_protocols.is_some());
         assert!(rule.dst_protocols.is_some());
@@ -815,7 +817,7 @@ mod tests {
     Logging Configuration";
         let lines: Vec<String> = rule.lines().map(|s| s.to_string()).collect();
         let rule = Rule::try_from(lines).unwrap();
-        assert_eq!(rule.name, "Custom_rule2".to_string());
+        assert_eq!(rule.name, "Custom_rule2 | FM-15046".to_string());
         assert_eq!(rule.dst_networks.as_ref().unwrap().capacity(), 8);
         assert!(rule.src_protocols.is_some());
         assert!(rule.dst_protocols.is_some());
@@ -846,7 +848,7 @@ mod tests {
     Logging Configuration";
         let lines: Vec<String> = rule.lines().map(|s| s.to_string()).collect();
         let rule = Rule::try_from(lines).unwrap();
-        assert_eq!(rule.name, "Custom_rule2".to_string());
+        assert_eq!(rule.name, "Custom_rule2 | FM-15046".to_string());
         assert_eq!(rule.src_networks.as_ref().unwrap().capacity(), 10);
         assert_eq!(rule.dst_networks.as_ref().unwrap().capacity(), 8);
         assert!(rule.src_protocols.is_some());
@@ -872,7 +874,7 @@ mod tests {
     Logging Configuration";
         let lines: Vec<String> = rule.lines().map(|s| s.to_string()).collect();
         let rule = Rule::try_from(lines).unwrap();
-        assert_eq!(rule.name, "Custom_rule2".to_string());
+        assert_eq!(rule.name, "Custom_rule2 | FM-15046".to_string());
         assert_eq!(rule.dst_networks.as_ref().unwrap().capacity(), 8);
         assert!(rule.src_protocols.is_some());
         assert!(rule.dst_protocols.is_some());
@@ -898,7 +900,7 @@ mod tests {
     Logging Configuration";
         let lines: Vec<String> = rule.lines().map(|s| s.to_string()).collect();
         let rule = Rule::try_from(lines).unwrap();
-        assert_eq!(rule.name, "Custom_rule2".to_string());
+        assert_eq!(rule.name, "Custom_rule2 | FM-15046".to_string());
         assert_eq!(rule.src_networks.as_ref().unwrap().capacity(), 10);
         assert!(rule.src_protocols.is_some());
         assert!(rule.dst_protocols.is_some());
@@ -928,7 +930,7 @@ mod tests {
     Logging Configuration";
         let lines: Vec<String> = rule.lines().map(|s| s.to_string()).collect();
         let rule = Rule::try_from(lines).unwrap();
-        assert_eq!(rule.name, "Custom_rule2".to_string());
+        assert_eq!(rule.name, "Custom_rule2 | FM-15046".to_string());
         assert_eq!(rule.src_networks.as_ref().unwrap().capacity(), 10);
         assert_eq!(rule.dst_networks.as_ref().unwrap().capacity(), 8);
         assert!(rule.dst_protocols.is_some());
@@ -957,7 +959,7 @@ mod tests {
     Logging Configuration";
         let lines: Vec<String> = rule.lines().map(|s| s.to_string()).collect();
         let rule = Rule::try_from(lines).unwrap();
-        assert_eq!(rule.name, "Custom_rule2".to_string());
+        assert_eq!(rule.name, "Custom_rule2 | FM-15046".to_string());
         assert_eq!(rule.src_networks.as_ref().unwrap().capacity(), 10);
         assert_eq!(rule.dst_networks.as_ref().unwrap().capacity(), 8);
         assert!(rule.src_protocols.is_some());
