@@ -149,7 +149,7 @@ pub fn analyze_topk_by_optimization(fname: &PathBuf, k: usize) -> Result<(), Cli
 
     let mut rules = acp.iter().collect::<Vec<_>>();
 
-    rules.sort_by_key(|a| a.capacity() - a.optimized_capacity());
+    rules.sort_by_key(|a| a.capacity().saturating_sub(a.optimized_capacity()));
     rules.reverse();
 
     println!("==== Top{k} rules by capacity ====");
