@@ -1,5 +1,7 @@
 ---
     name: Rust Continuous Integration
+    permissions:
+      contents: read
     
     #######################################
     # Start the job on all push to master #
