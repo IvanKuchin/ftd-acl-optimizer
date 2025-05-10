@@ -16,8 +16,11 @@ If you are getting closer to the limit - don't panic ! It is time to start think
 ## How to use
 
 1. Login to FTD CLI
-3. Collect 'show access-control-config`
-4. Run the script `ftd-acl-optimizer analyze -f collected_output.txt`
+2. Collect 'show access-control-config`
+3. `ftd-acl-optimizer --file collected_output.txt get acp capacity` to get the current number of lines (should be close to `sh ip access-list element-count`) and possible number of optimized lines
+4. `ftd-acl-optimizer --file collected_output.txt get top-k by-optimization` to get top 5 rules with the most possible optimizations
+5. `ftd-acl-optimizer --file collected_output.txt get rule analysis <RULE NAME>` to explanation of what must be done to optimize a particular rule
+
 
 ## Cisco solution
 
