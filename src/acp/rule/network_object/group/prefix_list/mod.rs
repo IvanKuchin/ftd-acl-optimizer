@@ -124,6 +124,8 @@ impl PrefixList {
 
 #[cfg(test)]
 mod tests {
+    use super::prefix_list_item::hostname::Hostname;
+    use super::prefix_list_item::ipv4::IPv4;
     use super::*;
 
     #[test]
@@ -293,5 +295,40 @@ mod tests {
         let line = "Mixed (10.0.0.0/8, 192.168.1.1-192.168.1.10)";
         let prefix_list = PrefixList::from_str(line).unwrap();
         assert_eq!(prefix_list.capacity(), 1 + 5); // 1 + 10
+    }
+
+    #[test]
+    fn test_flatten_hostname_items_multiple_ips() {
+        let items = vec![
+            PrefixListItem::Prefix("10.0.0.0/8".parse().unwrap()),
+            PrefixListItem::Hostname(Hostname::with_ipv4s(
+                "example.com",
+                vec![IPv4::from(0x01020304), IPv4::from(0x05060708)],
+            )),
+        ];
+
+        let flattened = flatten_hostname_items(items);
+        assert_eq!(flattened.len(), 3);
+        assert!(flattened
+            .iter()
+            .all(|item| !matches!(item, PrefixListItem::Hostname(_))));
+    }
+
+    #[test]
+    fn test_flatten_hostname_items_hostname_to_multiple_ip_ranges() {
+        let items = vec![PrefixListItem::Hostname(Hostname::with_ipv4s(
+            "example.com",
+            vec![IPv4::from(0x01020304), IPv4::from(0x05060708)],
+        ))];
+
+        let flattened = flatten_hostname_items(items);
+        assert_eq!(flattened.len(), 2);
+
+        for item in flattened {
+            match item {
+                PrefixListItem::IPRange(ip_range) => assert_eq!(ip_range.get_name(), "example.com"),
+                _ => panic!("Expected IPRange"),
+            }
+        }
     }
 }

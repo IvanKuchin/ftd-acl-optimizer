@@ -98,6 +98,14 @@ impl Hostname {
     pub fn capacity(&self) -> u64 {
         self.ips.len() as u64
     }
+
+    #[cfg(test)]
+    pub(crate) fn with_ipv4s(name: impl Into<String>, ips: Vec<IPv4>) -> Self {
+        Self {
+            name: name.into(),
+            ips,
+        }
+    }
 }
 
 #[cfg(test)]
