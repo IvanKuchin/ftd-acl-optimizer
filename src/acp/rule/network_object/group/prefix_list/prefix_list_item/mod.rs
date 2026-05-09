@@ -70,7 +70,9 @@ impl PrefixListItem {
             PrefixListItem::Prefix(prefix) => prefix.capacity(),
             PrefixListItem::IPRange(ip_range) => ip_range.capacity(),
             PrefixListItem::Hostname(_) => {
-                unreachable!("Hostname items should be flattened to IPRange by PrefixList::from_str")
+                unreachable!(
+                    "Hostname items should be flattened to IPRange by PrefixList::from_str"
+                )
             }
         }
     }
@@ -88,7 +90,9 @@ impl PrefixListItem {
             PrefixListItem::Prefix(prefix) => prefix.start_ip(),
             PrefixListItem::IPRange(ip_range) => ip_range.start_ip(),
             PrefixListItem::Hostname(_) => {
-                unreachable!("Hostname items should be flattened to IPRange by PrefixList::from_str")
+                unreachable!(
+                    "Hostname items should be flattened to IPRange by PrefixList::from_str"
+                )
             }
         }
     }
@@ -98,7 +102,9 @@ impl PrefixListItem {
             PrefixListItem::Prefix(prefix) => prefix.end_ip(),
             PrefixListItem::IPRange(ip_range) => ip_range.end_ip(),
             PrefixListItem::Hostname(_) => {
-                unreachable!("Hostname items should be flattened to IPRange by PrefixList::from_str")
+                unreachable!(
+                    "Hostname items should be flattened to IPRange by PrefixList::from_str"
+                )
             }
         }
     }
