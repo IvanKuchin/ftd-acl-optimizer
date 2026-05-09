@@ -298,7 +298,7 @@ mod tests {
     }
 
     #[test]
-    fn test_flatten_hostname_items_multiple_ips() {
+    fn test_flatten_hostname_items_hostname_with_multiple_ips() {
         let items = vec![
             PrefixListItem::Prefix("10.0.0.0/8".parse().unwrap()),
             PrefixListItem::Hostname(Hostname::with_ipv4s(
@@ -315,7 +315,7 @@ mod tests {
     }
 
     #[test]
-    fn test_flatten_hostname_items_hostname_to_multiple_ip_ranges() {
+    fn test_flatten_hostname_items_to_multiple_ip_ranges() {
         let items = vec![PrefixListItem::Hostname(Hostname::with_ipv4s(
             "example.com",
             vec![IPv4::from(0x01020304), IPv4::from(0x05060708)],
