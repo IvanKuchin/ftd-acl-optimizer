@@ -1,14 +1,14 @@
 use std::net::IpAddr;
 use std::str::FromStr;
 
+use super::ip_range::IPRange;
 use super::ipv4::IPv4;
 use std::net::ToSocketAddrs;
 
 #[derive(Debug, Clone)]
 pub struct Hostname {
     name: String,
-    start: IPv4,
-    end: IPv4,
+    ips: Vec<IPv4>,
 }
 
 #[derive(thiserror::Error, Debug)]
@@ -26,23 +26,45 @@ impl FromStr for Hostname {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let addrs_iter = format!("{s}:443").to_socket_addrs()?;
+
+        let mut ipv4_addresses = Vec::new();
+        let mut ipv6_count = 0;
+
         for addr in addrs_iter {
             let ip = addr.ip();
 
-            if let IpAddr::V4(ipv4) = ip {
-                let start = IPv4::from(ipv4.to_bits());
-                let end = start.clone();
-                return Ok(Hostname {
-                    name: s.to_string(),
-                    start,
-                    end,
-                });
+            match ip {
+                IpAddr::V4(ipv4) => {
+                    ipv4_addresses.push(IPv4::from(ipv4.to_bits()));
+                }
+                IpAddr::V6(ipv6) => {
+                    ipv6_count += 1;
+                    if ipv6_count == 1 {
+                        eprintln!("Warning: IPv6 address {} for hostname '{}' is not supported and will be skipped", ipv6, s);
+                    }
+                }
             }
         }
 
-        Err(HostnameError::NameResolution {
-            name: s.to_string(),
-        })
+        // Log additional IPv6 addresses if more than one was encountered
+        if ipv6_count > 1 {
+            eprintln!(
+                "Warning: {} additional IPv6 address(es) for hostname '{}' were skipped",
+                ipv6_count - 1,
+                s
+            );
+        }
+
+        if !ipv4_addresses.is_empty() {
+            Ok(Hostname {
+                name: s.to_string(),
+                ips: ipv4_addresses,
+            })
+        } else {
+            Err(HostnameError::NameResolution {
+                name: s.to_string(),
+            })
+        }
     }
 }
 
@@ -51,16 +73,30 @@ impl Hostname {
         &self.name
     }
 
-    pub fn start_ip(&self) -> &IPv4 {
-        &self.start
+    /// Convert hostname's multiple IPs into individual IPRange items
+    pub fn to_ip_ranges(&self) -> Vec<IPRange> {
+        self.ips
+            .iter()
+            .map(|ip| IPRange::new(self.name.clone(), ip.clone(), ip.clone()))
+            .collect()
     }
 
+    #[deprecated(
+        note = "Hostname with multiple IPs cannot provide single start IP - use to_ip_ranges() instead"
+    )]
+    pub fn start_ip(&self) -> &IPv4 {
+        panic!("Hostname with multiple IPs cannot provide single start/end IP - use to_ip_ranges() instead")
+    }
+
+    #[deprecated(
+        note = "Hostname with multiple IPs cannot provide single end IP - use to_ip_ranges() instead"
+    )]
     pub fn end_ip(&self) -> &IPv4 {
-        &self.end
+        panic!("Hostname with multiple IPs cannot provide single start/end IP - use to_ip_ranges() instead")
     }
 
     pub fn capacity(&self) -> u64 {
-        1
+        self.ips.len() as u64
     }
 }
 
@@ -75,8 +111,8 @@ mod tests {
         let hostname = Hostname::from_str(hostname_str).unwrap();
 
         assert_eq!(hostname.get_name(), hostname_str);
-        assert!(hostname.start_ip().to_string().parse::<Ipv4Addr>().is_ok());
-        assert_eq!(hostname.start_ip(), hostname.end_ip());
+        assert!(!hostname.ips.is_empty());
+        assert!(hostname.ips[0].to_string().parse::<Ipv4Addr>().is_ok());
     }
 
     #[test]
@@ -85,8 +121,8 @@ mod tests {
         let hostname = Hostname::from_str(hostname_str).unwrap();
 
         assert_eq!(hostname.get_name(), hostname_str);
-        assert!(hostname.start_ip().to_string().parse::<Ipv4Addr>().is_ok());
-        assert_eq!(hostname.start_ip(), hostname.end_ip());
+        assert!(!hostname.ips.is_empty());
+        assert!(hostname.ips[0].to_string().parse::<Ipv4Addr>().is_ok());
     }
 
     #[test]
@@ -115,34 +151,63 @@ mod tests {
     fn test_get_name() {
         let hostname = Hostname {
             name: "example.com".to_string(),
-            start: IPv4::from(0),
-            end: IPv4::from(0),
+            ips: vec![IPv4::from(0)],
         };
 
         assert_eq!(hostname.get_name(), "example.com");
     }
 
     #[test]
-    fn test_start_ip() {
-        let start_ip = IPv4::from(12345);
+    fn test_to_ip_ranges() {
         let hostname = Hostname {
             name: "example.com".to_string(),
-            start: start_ip.clone(),
-            end: start_ip.clone(),
+            ips: vec![IPv4::from(12345), IPv4::from(12346)],
         };
 
-        assert_eq!(hostname.start_ip(), &start_ip);
+        let ranges = hostname.to_ip_ranges();
+        assert_eq!(ranges.len(), 2);
+        assert_eq!(ranges[0].get_name(), "example.com");
+        assert_eq!(ranges[1].get_name(), "example.com");
+        assert_eq!(ranges[0].start_ip(), &IPv4::from(12345));
+        assert_eq!(ranges[1].start_ip(), &IPv4::from(12346));
     }
 
     #[test]
-    fn test_end_ip() {
-        let end_ip = IPv4::from(54321);
+    fn test_capacity() {
         let hostname = Hostname {
             name: "example.com".to_string(),
-            start: end_ip.clone(),
-            end: end_ip.clone(),
+            ips: vec![IPv4::from(54321), IPv4::from(54322), IPv4::from(54323)],
         };
 
-        assert_eq!(hostname.end_ip(), &end_ip);
+        assert_eq!(hostname.capacity(), 3);
+    }
+
+    #[test]
+    fn test_hostname_with_both_ipv4_and_ipv6() {
+        // This test demonstrates that IPv6 addresses are skipped with a warning
+        // while ALL IPv4 addresses are captured successfully.
+        // Note: google.com typically has both IPv4 and IPv6 addresses.
+        // If this test fails due to DNS resolution, it may indicate network issues.
+        let hostname_str = "google.com";
+        let result = Hostname::from_str(hostname_str);
+
+        // The hostname should resolve successfully to IPv4 address(es)
+        // even if IPv6 addresses are present (they'll be logged as warnings to stderr)
+        assert!(
+            result.is_ok(),
+            "Expected google.com to resolve to at least one IPv4 address"
+        );
+
+        let hostname = result.unwrap();
+        assert_eq!(hostname.get_name(), hostname_str);
+        assert!(!hostname.ips.is_empty());
+        assert!(hostname.ips[0].to_string().parse::<Ipv4Addr>().is_ok());
+
+        // Google typically returns multiple A records
+        println!(
+            "Resolved {} IPv4 addresses for {}",
+            hostname.ips.len(),
+            hostname_str
+        );
     }
 }
