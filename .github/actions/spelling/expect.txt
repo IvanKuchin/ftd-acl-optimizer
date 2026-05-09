@@ -20,6 +20,8 @@ FPR
 ftd
 ftp
 GGMP
+google
+hostnames
 icmpv
 idx
 igmp

@@ -14,6 +14,7 @@ pub enum AppError {
 }
 
 fn main() -> Result<(), AppError> {
+    env_logger::init();
     let args = args::AppArgs::parse();
     let file = args.file;
 
