@@ -4,5 +4,7 @@ version = "0.1.2"
 edition = "2021"
 
 [dependencies]
-clap = {version = "4.x.x", features = ["derive"] }
-thiserror = "2.x.x"
+clap = {version = "4", features = ["derive"] }
+thiserror = "2"
+log = "0"
+env_logger = "0"

@@ -40,7 +40,7 @@ impl FromStr for Hostname {
                 IpAddr::V6(ipv6) => {
                     ipv6_count += 1;
                     if ipv6_count == 1 {
-                        eprintln!("Warning: IPv6 address {} for hostname '{}' is not supported and will be skipped", ipv6, s);
+                        log::warn!("IPv6 address {} for hostname '{}' is not supported and will be skipped", ipv6, s);
                     }
                 }
             }
@@ -48,8 +48,8 @@ impl FromStr for Hostname {
 
         // Log additional IPv6 addresses if more than one was encountered
         if ipv6_count > 1 {
-            eprintln!(
-                "Warning: {} additional IPv6 address(es) for hostname '{}' were skipped",
+            log::warn!(
+                "{} additional IPv6 address(es) for hostname '{}' were skipped",
                 ipv6_count - 1,
                 s
             );
