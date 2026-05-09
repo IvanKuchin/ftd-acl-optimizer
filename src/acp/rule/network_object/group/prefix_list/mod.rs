@@ -327,7 +327,7 @@ mod tests {
         for item in flattened {
             match item {
                 PrefixListItem::IPRange(ip_range) => assert_eq!(ip_range.get_name(), "example.com"),
-                _ => panic!("Expected IPRange"),
+                _ => panic!("Expected IPRange, got: {:?}", item),
             }
         }
     }
