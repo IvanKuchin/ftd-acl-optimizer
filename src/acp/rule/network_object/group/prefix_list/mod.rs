@@ -298,7 +298,7 @@ mod tests {
     }
 
     #[test]
-    fn test_flatten_hostname_items_hostname_with_multiple_ips() {
+    fn test_flatten_hostname_items_with_multiple_ips() {
         let items = vec![
             PrefixListItem::Prefix("10.0.0.0/8".parse().unwrap()),
             PrefixListItem::Hostname(Hostname::with_ipv4s(
@@ -324,11 +324,18 @@ mod tests {
         let flattened = flatten_hostname_items(items);
         assert_eq!(flattened.len(), 2);
 
-        for item in flattened {
-            match item {
-                PrefixListItem::IPRange(ip_range) => assert_eq!(ip_range.get_name(), "example.com"),
-                _ => panic!("Expected IPRange"),
+        let expected_ips = [IPv4::from(0x01020304), IPv4::from(0x05060708)];
+
+        for (item, expected_ip) in flattened.into_iter().zip(expected_ips.iter()) {
+            let ip_range = if let PrefixListItem::IPRange(ip_range) = item {
+                Some(ip_range)
+            } else {
+                None
             }
+            .expect("Expected flattened hostname entry to be PrefixListItem::IPRange");
+            assert_eq!(ip_range.get_name(), "example.com");
+            assert_eq!(ip_range.start_ip(), expected_ip);
+            assert_eq!(ip_range.end_ip(), expected_ip);
         }
     }
 }
