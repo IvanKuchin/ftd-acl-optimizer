@@ -324,9 +324,15 @@ mod tests {
         let flattened = flatten_hostname_items(items);
         assert_eq!(flattened.len(), 2);
 
-        for item in flattened {
+        let expected_ips = [IPv4::from(0x01020304), IPv4::from(0x05060708)];
+
+        for (item, expected_ip) in flattened.into_iter().zip(expected_ips.iter()) {
             match item {
-                PrefixListItem::IPRange(ip_range) => assert_eq!(ip_range.get_name(), "example.com"),
+                PrefixListItem::IPRange(ip_range) => {
+                    assert_eq!(ip_range.get_name(), "example.com");
+                    assert_eq!(ip_range.start_ip(), expected_ip);
+                    assert_eq!(ip_range.end_ip(), expected_ip);
+                }
                 _ => panic!("Expected IPRange, got: {:?}", item),
             }
         }
