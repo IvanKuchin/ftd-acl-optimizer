@@ -52,11 +52,11 @@ Port/protocol optimization (adjacent TCP/UDP ranges) is handled natively by FTD 
 
 ## Documentation
 
-Full documentation is in the [`docs/`](docs/README.md) folder:
+Full documentation is in this [`docs/` index](README.md):
 
-- [Getting Started](docs/guides/getting-started.md)
-- [CLI Reference](docs/cli/commands.md)
-- [ACE Calculation](docs/concepts/ace-calculation.md)
-- [Optimization Types](docs/concepts/optimization-types.md)
-- [Architecture](docs/architecture/overview.md)
-- [Contributing](docs/development/contributing.md)
+- [Getting Started](guides/getting-started.md)
+- [CLI Reference](cli/commands.md)
+- [ACE Calculation](concepts/ace-calculation.md)
+- [Optimization Types](concepts/optimization-types.md)
+- [Architecture](architecture/overview.md)
+- [Contributing](development/contributing.md)
